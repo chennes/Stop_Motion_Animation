@@ -132,7 +132,13 @@ void setupUserInterface () {
     ;
     
   // This makes the spacebar activate the takePhoto() function...
-  cp5.mapKeyFor(new ControlKey() {public void keyEvent() {takePhoto();}}, ' ');
+  cp5.mapKeyFor(new ControlKey() {
+    public void keyEvent() {
+      if (! groupnameField.isFocus()) {
+        takePhoto();
+      }
+    }
+  }, ' ');
   
   cp5.addTextlabel ("Tip2")
     .setText ("HOLD DOWN <CTRL> TO SEE PREVIOUS FRAME")
@@ -251,7 +257,17 @@ public void takePhoto ()
       
       // Create the filename:
       groupName = groupnameField.getText();
-      String filename = createFilename (groupName, sceneNumber, numberOfFrames);
+      String[] parts = new String[3];
+      parts[0] = "Image Files";
+      parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+      try {
+        sceneNumber = Integer.parseInt (sceneNumberField.getText());
+      } catch (NumberFormatException e) {
+        // If they didn't give us an integer...
+        sceneNumber = 1;
+      }
+      parts[2] = createFilename (groupName, sceneNumber, numberOfFrames);
+      String filename = join (parts,File.separator);
       frame.save (filename);
       lastFileName = filename;
       print ("Wrote frame to ");
@@ -323,7 +339,10 @@ private void loadPrevious ()
 void loadPreviousFromFile (File selection)
 {
   if (selection != null) {
+    imageSequence.clear();
+    numberOfFrames = 0;
     String pathToFile = selection.getPath();
+    String filePath = pathToFile.substring(0,pathToFile.lastIndexOf(File.separator));
     String filename = selection.toPath().getFileName().toString();
     
     // We have to figure out the sequence:
@@ -340,7 +359,7 @@ void loadPreviousFromFile (File selection)
     int loadingPhotoNumber = 1;
     boolean lastLoadWasSuccessful = true;
     while (lastLoadWasSuccessful) {
-      String loadFilename = createFilename (groupName, sceneNumber, loadingPhotoNumber);
+      String loadFilename = filePath + File.separator + createFilename (groupName, sceneNumber, loadingPhotoNumber);
       PImage frame = loadImage (loadFilename);
       if (frame == null) {
         lastLoadWasSuccessful = false;
