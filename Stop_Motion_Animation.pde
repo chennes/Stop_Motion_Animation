@@ -66,9 +66,10 @@ Slider frameSlider;
 
 String groupName = "";
 String lastFileName = "";
+String filePath = "";
 int sceneNumber = 1;
 int numberOfFrames = 0;
-ArrayList <PImage> imageSequence = new ArrayList<PImage> ();
+PImage loadedFrame;
 PImage liveFrame;
 boolean weAreLive = true;
 boolean weAreInReplay = false;
@@ -225,7 +226,7 @@ public void controlEvent(ControlEvent theEvent) {
     } else if (eventName == "Jump to Live View") {
       weAreLive = true;
       weAreInReplay = false;
-      currentFrame = imageSequence.size();
+      currentFrame = numberOfFrames+1;
       frameSlider.setValue (currentFrame);
     } else if (eventName == "Delete Last Photo") {
       deleteFrame();
@@ -246,10 +247,8 @@ public void takePhoto ()
   
   while (badCounter < MAX_BAD_FRAMES_BEFORE_GIVING_UP && success == false) {
     if (cam != null && cam.available() == true) {
-      PImage frame;
       cam.read();
-      frame = cam.get();
-      imageSequence.add (frame);
+      loadedFrame = cam.get();
       numberOfFrames++;
       numFramesLabel.setText (nfc(numberOfFrames));
       frameSlider.setRange (1, numberOfFrames);
@@ -268,7 +267,7 @@ public void takePhoto ()
       }
       parts[2] = createFilename (groupName, sceneNumber, numberOfFrames);
       String filename = join (parts,File.separator);
-      frame.save (filename);
+      loadedFrame.save (filename);
       lastFileName = filename;
       print ("Wrote frame to ");
       println (filename);
@@ -311,19 +310,18 @@ private void playFrames ()
   weAreLive = false;
   weAreInReplay = true;
   frameRate (fps);
-  currentFrame = 0;
+  currentFrame = 1;
 }
 
 private void deleteFrame ()
 {
-  if (imageSequence.size() > 0) {
+  if (numberOfFrames > 0) {
     File f = new File (lastFileName);
     if (f.exists()) {
       f.delete();
     }
-    imageSequence.remove (imageSequence.size() - 1);
-    currentFrame = imageSequence.size();
     numberOfFrames--;
+    currentFrame = numberOfFrames;
     numFramesLabel.setText (nfc(numberOfFrames));
     frameSlider.setRange (1, numberOfFrames);
     frameSlider.setValue (numberOfFrames);
@@ -339,10 +337,9 @@ private void loadPrevious ()
 void loadPreviousFromFile (File selection)
 {
   if (selection != null) {
-    imageSequence.clear();
     numberOfFrames = 0;
     String pathToFile = selection.getPath();
-    String filePath = pathToFile.substring(0,pathToFile.lastIndexOf(File.separator));
+    filePath = pathToFile.substring(0,pathToFile.lastIndexOf(File.separator));
     String filename = selection.toPath().getFileName().toString();
     
     // We have to figure out the sequence:
@@ -359,12 +356,8 @@ void loadPreviousFromFile (File selection)
     int loadingPhotoNumber = 1;
     boolean lastLoadWasSuccessful = true;
     while (lastLoadWasSuccessful) {
-      String loadFilename = filePath + File.separator + createFilename (groupName, sceneNumber, loadingPhotoNumber);
-      PImage frame = loadImage (loadFilename);
-      if (frame == null) {
-        lastLoadWasSuccessful = false;
-      } else {
-        imageSequence.add (frame);
+      lastLoadWasSuccessful = LoadFrame (loadingPhotoNumber);
+      if (lastLoadWasSuccessful == true) {
         numberOfFrames++;
         loadingPhotoNumber++;
         numFramesLabel.setText (nfc(numberOfFrames));
@@ -378,6 +371,39 @@ void loadPreviousFromFile (File selection)
     print (" photos from files like ");
     println (filename);
   }
+}
+
+
+boolean LoadFrame (int frameNumber)
+{
+  boolean lastLoadWasSuccessful = false;
+  String groupName = groupnameField.getText();
+  int sceneNumber;
+  
+  groupName = groupnameField.getText();
+  String[] parts = new String[3];
+  parts[0] = "Image Files";
+  parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+  try {
+    sceneNumber = Integer.parseInt (sceneNumberField.getText());
+  } catch (NumberFormatException e) {
+    // If they didn't give us an integer...
+    sceneNumber = 1;
+  }
+  parts[2] = createFilename (groupName, sceneNumber, frameNumber);
+      
+  String filename = join (parts,File.separator);
+  println (filename);
+  PImage newFrame = loadImage (filename);
+  
+  if (newFrame == null) {
+    lastLoadWasSuccessful = false;
+  } else {
+    loadedFrame = newFrame;
+    lastLoadWasSuccessful = true;
+  }
+  
+  return lastLoadWasSuccessful;
 }
 
 
@@ -399,37 +425,40 @@ void draw() {
   if (weAreLive) {
     boolean cameraHasGoodData = (cam != null && cam.available() == true);
     if (cameraHasGoodData) {
-      if (keyPressed && keyCode == CONTROL && imageSequence.size() > 0) {
-        image (imageSequence.get(imageSequence.size()-1), 260, 200);
+      if (keyPressed && keyCode == CONTROL && loadedFrame != null) {
+        image (loadedFrame, 260, 200);
       } else {
         cam.read();
         liveFrame = cam.get();
         image (liveFrame, 260, 200);
-        if (keyPressed && keyCode == SHIFT && imageSequence.size() > 0) {
-          PImage sourceImage = imageSequence.get(imageSequence.size()-1);
-          blend (imageSequence.get(imageSequence.size()-1), 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
+        if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
+          blend (loadedFrame, 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
         }
       }
     } else if (liveFrame != null) {
       image (liveFrame, 260, 200);
-      if (keyPressed && keyCode == SHIFT && imageSequence.size() > 0) {
-        PImage sourceImage = imageSequence.get(imageSequence.size()-1);
-        blend (imageSequence.get(imageSequence.size()-1), 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
+      if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
+        blend (loadedFrame, 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
       }
     }
   } else if (weAreInReplay) {
     // Show the current frame instead:
-    image (imageSequence.get(currentFrame), 260, 200);
-    currentFrame++;
-    frameSlider.setValue (currentFrame);
-    if (currentFrame >= imageSequence.size()) {
-      currentFrame = imageSequence.size() - 1;
+    boolean success = LoadFrame (currentFrame);
+    if (success == true) {
+      image (loadedFrame, 260, 200);
+      currentFrame++;
+      frameSlider.setValue (currentFrame);
+    }
+    if (currentFrame > numberOfFrames || success == false) {
+      weAreLive = true;
       weAreInReplay = false;
+      currentFrame = numberOfFrames+1;
+      frameSlider.setValue (currentFrame);
       frameRate (30);
     }
   } else {
-    if (currentFrame < imageSequence.size()) {
-      image (imageSequence.get(currentFrame), 260, 200);
+    if (currentFrame <= numberOfFrames && loadedFrame != null) {
+      image (loadedFrame, 260, 200);
     } else {
       // Just do nothing, I guess...
     }
