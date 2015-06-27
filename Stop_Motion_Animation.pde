@@ -58,8 +58,7 @@ import java.io.File;
 
 Capture cam;
 ControlP5 cp5;
-Textfield groupnameField;
-Textfield sceneNumberField;
+Textlabel folderNameLabel;
 RadioButton fpsRadio;
 Textlabel numFramesLabel;
 Slider frameSlider;
@@ -86,15 +85,16 @@ void setupUserInterface () {
   cp5 = new ControlP5 (this);
   
   // GUI
-  groupnameField = cp5.addTextfield("Group Name")
+  folderNameLabel = cp5.addTextlabel("Image Folder Name")
+    .setText ("Image Folder Name")
     .setPosition (20,20)
-    .setSize (400,25)
-    ; 
-  sceneNumberField = cp5.addTextfield("Scene Number")
-   .setPosition(450,20)
-   .setSize(80,25)
-   .setText("1")
-   ;
+    ;
+  
+  cp5.addButton ("Start a new movie")
+    .setPosition (300, 20)
+    .setSize(200,25)
+    ;
+  
   cp5.addButton ("Click here to load previous photos")
     .setPosition (550, 20)
     .setSize(200,25)
@@ -113,7 +113,7 @@ void setupUserInterface () {
     .setNoneSelectedAllowed (false)
     .addItem("10",1)
     .addItem("15",2)
-    .addItem("24",3)
+    .addItem("30",3)
     .activate (1)
     ;
     
@@ -135,9 +135,7 @@ void setupUserInterface () {
   // This makes the spacebar activate the takePhoto() function...
   cp5.mapKeyFor(new ControlKey() {
     public void keyEvent() {
-      if (! groupnameField.isFocus()) {
         takePhoto();
-      }
     }
   }, ' ');
   
@@ -191,16 +189,23 @@ void setupUserInterface () {
   int y = year();
   int h = hour();
   int min = minute();
-  String[] date = new String[5];
+  int sec = second();
+  String[] date = new String[6];
   date[0] = nf(y,4); // The nf() function creates a fixed-precision number with the specified
   date[1] = nf(m,2); // number of digits (here four for the year and two for everything else)
   date[2] = nf(d,2);
   date[3] = nf(h,2);
   date[4] = nf(min,2);
-  groupnameField.setText(join(date, "-"));
+  date[5] = nf(sec,2);
+  groupName = join(date, "-");
+  folderNameLabel.setText(groupName);
 }
   
 void setupCamera () {
+  if (cam != null) {
+    cam.stop();
+    cam = null;
+  }
   String[] cameras = Capture.list();
   
   if (cameras.length == 0) {
@@ -223,11 +228,21 @@ public void controlEvent(ControlEvent theEvent) {
       takePhoto();
     } else if (eventName == "  >>> Play >>>") {
       playFrames();
+    } else if (eventName == "Start a new movie") {
+      setupDefaultGroupName();
+      setupCamera();
+      numberOfFrames = 0;
+      weAreLive = true;
+      weAreInReplay = false;
+      currentFrame = 0;
+      numFramesLabel.setText (nfc(numberOfFrames));
     } else if (eventName == "Jump to Live View") {
       weAreLive = true;
       weAreInReplay = false;
       currentFrame = numberOfFrames+1;
-      frameSlider.setValue (currentFrame);
+      numFramesLabel.setText (nfc(numberOfFrames));
+      frameSlider.setRange (1, numberOfFrames);
+      frameSlider.setValue (numberOfFrames);
     } else if (eventName == "Delete Last Photo") {
       deleteFrame();
     } else if (eventName == "Click here to load previous photos") {
@@ -255,17 +270,10 @@ public void takePhoto ()
       frameSlider.setValue (numberOfFrames);
       
       // Create the filename:
-      groupName = groupnameField.getText();
       String[] parts = new String[3];
       parts[0] = "Image Files";
       parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-      try {
-        sceneNumber = Integer.parseInt (sceneNumberField.getText());
-      } catch (NumberFormatException e) {
-        // If they didn't give us an integer...
-        sceneNumber = 1;
-      }
-      parts[2] = createFilename (groupName, sceneNumber, numberOfFrames);
+      parts[2] = createFilename (groupName, numberOfFrames);
       String filename = join (parts,File.separator);
       loadedFrame.save (filename);
       lastFileName = filename;
@@ -283,11 +291,11 @@ public void takePhoto ()
   }
 }
 
-private String createFilename (String group, int scene, int frame)
+private String createFilename (String group, int frame)
 {
   // Strip the group name of anything but letters, numbers, dashes, and underscores
   String sanitizedGroupName = group.replaceAll("[^a-zA-Z0-9\\-_]", "");
-  String filename = sanitizedGroupName + "_Scene" + nf(scene,2) + "_Frame" + nf(frame,4) + ".tif";
+  String filename = sanitizedGroupName + "_Frame" + nf(frame,4) + ".tif";
   return filename;
 }
 
@@ -345,25 +353,27 @@ void loadPreviousFromFile (File selection)
     // We have to figure out the sequence:
     String[] parts = filename.split ("[_.]");
     groupName = parts[0];
-    sceneNumber = Integer.parseInt(parts[1].substring(5));
-    int selectedFrameNumber = Integer.parseInt(parts[2].substring(5));
-    String extension = parts[3];
+    int selectedFrameNumber = Integer.parseInt(parts[1].substring(5));
+    String extension = parts[2];
     
-    groupnameField.setText (groupName);
-    sceneNumberField.setText (nfc(sceneNumber));
+    folderNameLabel.setText (groupName);
     
     // Now actually load up the old photos:
     int loadingPhotoNumber = 1;
     boolean lastLoadWasSuccessful = true;
+    int failCount = 0;
+    int MAX_FAILS_BEFORE_STOP = 100;
     while (lastLoadWasSuccessful) {
       lastLoadWasSuccessful = LoadFrame (loadingPhotoNumber);
       if (lastLoadWasSuccessful == true) {
         numberOfFrames++;
-        loadingPhotoNumber++;
         numFramesLabel.setText (nfc(numberOfFrames));
         frameSlider.setRange (1, numberOfFrames);
         frameSlider.setValue (numberOfFrames);
+      } else {
+        failCount++;
       }
+      loadingPhotoNumber++;
     }
     loadingPhotoNumber--;
     print ("Successfully loaded ");
@@ -377,20 +387,10 @@ void loadPreviousFromFile (File selection)
 boolean LoadFrame (int frameNumber)
 {
   boolean lastLoadWasSuccessful = false;
-  String groupName = groupnameField.getText();
-  int sceneNumber;
-  
-  groupName = groupnameField.getText();
   String[] parts = new String[3];
   parts[0] = "Image Files";
   parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-  try {
-    sceneNumber = Integer.parseInt (sceneNumberField.getText());
-  } catch (NumberFormatException e) {
-    // If they didn't give us an integer...
-    sceneNumber = 1;
-  }
-  parts[2] = createFilename (groupName, sceneNumber, frameNumber);
+  parts[2] = createFilename (groupName, frameNumber);
       
   String filename = join (parts,File.separator);
   println (filename);
