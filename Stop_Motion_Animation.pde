@@ -11,13 +11,10 @@ chennes@pioneerlibrarysystem.org
 RUNNING:
 1) Connect a webcam to your computer. Wait for the computer to finish loading drivers, if necessary.
 2) Click the "Play" button in the upper left corner of this screen
-3) If desired, set the group name and scene number at the top of the screen. This controls the 
-   filenames of the photos you take.
-4) Line up your shot.
-5) Press the spacebar, or click the "Take Photo" button
-6) Repeat 4 and 5 until you've got some frames
-7) Click ">>>PLAY>>>" to see the movie.
-8) Click "JUMP TO LIVE VIEW" to return to seeing what the camera sees.
+3) Line up your shot.
+4) Press the spacebar, or click the "Take Photo" button
+5) Repeat 4 and 5 until you've got some frames
+6) Click ">>>PLAY>>>" to see the movie.
 
 TIPS:
 * Holding down the Control key will cause the last frame taken to be displayed. This can help when
@@ -59,7 +56,6 @@ import java.io.File;
 Capture cam;
 ControlP5 cp5;
 Textlabel folderNameLabel;
-RadioButton fpsRadio;
 Textlabel numFramesLabel;
 Slider frameSlider;
 
@@ -74,6 +70,21 @@ boolean weAreLive = true;
 boolean weAreInReplay = false;
 int currentFrame = 0;
 
+// GUI Constants
+int BORDER_WIDTH = 10;
+int BUTTON_WIDTH = 150;
+int BUTTON_HEIGHT = 25;
+int STANDARD_SPACING = 10;
+
+int WEBCAM_LEFT = 2*STANDARD_SPACING+BUTTON_WIDTH;
+int WEBCAM_UPPER = 3*STANDARD_SPACING+2*BUTTON_HEIGHT;
+int WEBCAM_WIDTH = 640;
+int WEBCAM_HEIGHT = 480;
+
+int WINDOW_WIDTH = WEBCAM_WIDTH + 3*STANDARD_SPACING + BUTTON_WIDTH;
+int WINDOW_HEIGHT = WEBCAM_HEIGHT + 5*STANDARD_SPACING + 3 * BUTTON_HEIGHT;
+
+
 void setup () {
   setupUserInterface ();
   setupDefaultGroupName ();
@@ -81,55 +92,43 @@ void setup () {
 }
 
 void setupUserInterface () {
-  size (1024, 768);
+  size (WINDOW_WIDTH, WINDOW_HEIGHT);
   cp5 = new ControlP5 (this);
+  
+  PFont boldFont;
+  boldFont = loadFont("MeiryoUI-Bold-12.vlw");
   
   // GUI
   folderNameLabel = cp5.addTextlabel("Image Folder Name")
     .setText ("Image Folder Name")
-    .setPosition (20,20)
+    .setPosition (STANDARD_SPACING, STANDARD_SPACING+5)
+    .setFont (boldFont)
     ;
   
   cp5.addButton ("Start a new movie")
-    .setPosition (300, 20)
-    .setSize(200,25)
+    .setPosition (2*STANDARD_SPACING+BUTTON_WIDTH, STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
   
-  cp5.addButton ("Click here to load previous photos")
-    .setPosition (550, 20)
-    .setSize(200,25)
-    ;
-  
-  cp5.addTextlabel ("Frames per Second")
-    .setText ("FRAMES PER SECOND")
-    .setPosition (260, 140)
-    ;
-    
-  fpsRadio = cp5.addRadioButton("Playback Speed")
-    .setPosition(260,160)
-    .setSize(20,20)
-    .setItemsPerRow(3)
-    .setSpacingColumn(50)
-    .setNoneSelectedAllowed (false)
-    .addItem("10",1)
-    .addItem("15",2)
-    .addItem("30",3)
-    .activate (1)
+  cp5.addButton ("Load previous photos")
+    .setPosition (3*STANDARD_SPACING+2*BUTTON_WIDTH, STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
     
   cp5.addTextlabel ("Number of Frames")
     .setText ("NUMBER OF FRAMES: ")
-    .setPosition (750, 170)
+    .setPosition (WINDOW_WIDTH-1.5*BUTTON_WIDTH, 3*STANDARD_SPACING+BUTTON_HEIGHT)
     ;
     
   numFramesLabel = cp5.addTextlabel ("frames")
     .setText ("0")
-    .setPosition (880, 170)
+    .setPosition (WINDOW_WIDTH-.5*BUTTON_WIDTH, 3*STANDARD_SPACING+BUTTON_HEIGHT)
     ;
    
   cp5.addButton ("Take Photo            (Spacebar)")
-    .setPosition (20,200)
-    .setSize(200,25)
+    .setPosition (STANDARD_SPACING,3*STANDARD_SPACING+2*BUTTON_HEIGHT)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
+    .setColorBackground (color (40, 120, 40))
     ;
     
   // This makes the spacebar activate the takePhoto() function...
@@ -140,39 +139,28 @@ void setupUserInterface () {
   }, ' ');
   
   cp5.addTextlabel ("Tip2")
-    .setText ("HOLD DOWN <CTRL> TO SEE PREVIOUS FRAME")
-    .setPosition (20, 230)
+    .setText ("<CTRL> TO SEE PREVIOUS FRAME")
+    .setPosition (STANDARD_SPACING, 4*STANDARD_SPACING+3*BUTTON_HEIGHT)
     ;
     
   cp5.addTextlabel ("Tip3")
-    .setText ("HOLD DOWN <SHIFT> TO SEE OVERLAY")
-    .setPosition (20, 245)
+    .setText ("<SHIFT> TO SEE OVERLAY")
+    .setPosition (STANDARD_SPACING, 4*STANDARD_SPACING+4*BUTTON_HEIGHT)
     ;
     
   cp5.addButton ("Delete Last Photo")
-    .setPosition (20,290)
-    .setSize(200,25)
+    .setPosition (STANDARD_SPACING,7*STANDARD_SPACING+4*BUTTON_HEIGHT)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
-    
-  // Not actually easy to do in Processing, it turns out...
-  //cp5.addButton ("Save as Movie")
-  //  .setPosition (20,655)
-  //  .setSize(200,25)
-  //  ;
-    
+       
   cp5.addButton ("  >>> Play >>>")
-    .setPosition (20,700)
-    .setSize(90,25)
-    ;
-    
-  cp5.addButton ("Jump to Live View")
-    .setPosition (130,700)
-    .setSize(90,25)
+    .setPosition (STANDARD_SPACING, WEBCAM_UPPER+WEBCAM_HEIGHT+STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
     
   frameSlider = cp5.addSlider ("Frame")
-    .setPosition (260,700)
-    .setSize (640,25)
+    .setPosition (WEBCAM_LEFT,WEBCAM_UPPER+WEBCAM_HEIGHT+STANDARD_SPACING)
+    .setSize (WEBCAM_WIDTH-30,BUTTON_HEIGHT)
     .setValue (0)
     .setRange (0,0)
     .setSliderMode (Slider.FIX)
@@ -319,19 +307,8 @@ private String createFilename (String group, int frame)
 private void playFrames ()
 {
   println ("Playing frames");
-  // Get the FPS:
-  boolean isTen = fpsRadio.getState ("10");
-  boolean isFifteen =  fpsRadio.getState ("15");
-  boolean isTwentyFour = fpsRadio.getState ("24");
   
   int fps = 15;
-  if (isTen) {
-    fps = 10;
-  } else if (isFifteen) {
-    fps = 15;
-  } else if (isTwentyFour) {
-    fps = 24;
-  }
   weAreLive = false;
   weAreInReplay = true;
   frameRate (fps);
@@ -437,32 +414,33 @@ void draw() {
   background (0,0,0);
   stroke (255,255,255);
   strokeWeight (3);
-  line (20,80,1004,80);
+  line (STANDARD_SPACING,2*STANDARD_SPACING+BUTTON_HEIGHT,
+        WINDOW_WIDTH-STANDARD_SPACING,2*STANDARD_SPACING+BUTTON_HEIGHT);
   
   if (weAreLive) {
     boolean cameraHasGoodData = (cam != null && cam.available() == true);
     if (cameraHasGoodData) {
       if (keyPressed && keyCode == CONTROL && loadedFrame != null) {
-        image (loadedFrame, 260, 200);
+        image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
       } else {
         cam.read();
         liveFrame = cam.get();
-        image (liveFrame, 260, 200);
+        image (liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
         if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
-          blend (loadedFrame, 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
+          blend (loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
         }
       }
     } else if (liveFrame != null) {
-      image (liveFrame, 260, 200);
+      image (liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
       if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
-        blend (loadedFrame, 0, 0, 640, 480, 260, 200, 640, 480, LIGHTEST);
+        blend (loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
       }
     }
   } else if (weAreInReplay) {
     // Show the current frame instead:
     boolean success = LoadFrame (currentFrame);
     if (success == true) {
-      image (loadedFrame, 260, 200);
+      image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
       currentFrame++;
       frameSlider.setValue (currentFrame);
     }
@@ -475,7 +453,7 @@ void draw() {
     }
   } else {
     if (currentFrame <= numberOfFrames && loadedFrame != null) {
-      image (loadedFrame, 260, 200);
+      image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
     } else {
       // Just do nothing, I guess...
     }
