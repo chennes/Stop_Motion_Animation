@@ -41,3 +41,10 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Directories created when exporting EXE files:
+application.windows64
+application.windows32
+
+# Directory created when running
+Image Files
