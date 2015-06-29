@@ -216,8 +216,25 @@ void setupCamera () {
     for (int i = 0; i < cameras.length; i++) {
       println (cameras[i]);
     }
-    cam = new Capture (this, cameras[0]);
-    cam.start();
+    
+    // Find the LAST camera that says it is 640x480:
+    int cameraNumber = -1;
+    for (int i = cameras.length - 1; i >= 0; i--) {
+      if (match(cameras[i], "640x480") != null) {
+        cameraNumber = i;
+        break;
+      }
+    }
+    if (cameraNumber < 0) {
+      println ("No camera says it supports 640x480 resolution!");
+    } else {
+      print ("Selected camera ");
+      print (cameraNumber);
+      print (": ");
+      println (cameras[cameraNumber]);
+      cam = new Capture (this, cameras[cameraNumber]);
+      cam.start();
+    }
   }
 }
 
