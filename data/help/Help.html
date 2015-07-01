@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Stop Motion Animation Help</title>
+</head>
+<body>
+
+	<h1>Help with Pioneer Library System's Stop Motion Animator</h1>
+	<p>
+	Welcome to Pioneer Library's System's Stop Motion Animation software. It's designed to be easy to use
+	and hard to break.
+	</p>
+	<h2>Quick Start</h2>
+	<ol>
+		<li>Click "Start a New Movie" at the top of the screen</li>
+		<li>Write down the date stamp in the upper left corner</li>
+		<li>Click "Take Photo" or press the spacebar to take a photo</li>
+		<li>Tweak your scene, then take another photo</li>
+		<li>Keep repeating until you've got enough frames to be worth watching (15 per second)</li>
+		<li>Press ">>>PLAY>>>" to see your animation</li>
+	</ol>
+	That's it! Your frames are automatically saved, so when you are done and want to start a new movie, just
+	click "Start a New Movie" again and repeat the process. Your frames were stored in a folder called "Image Files"
+	and then the date stamp you wrote down in step 2.
+	
+	<h2>What do all the buttons do?</h2>
+	This section provides a more detailed overview of exactly what each button does, including a little bit
+	of technical detail.
+	<h3>Start a New Movie</h3>
+    Calculates a new date stamp (Year-Month-Day-Hour-Minute-Second), resets your number of frames, and starts
+	recording all new frames into a folder named with the new date stamp. It also re-initializes the camera, so
+	if your camera wasn't ready when you first launched the program, clicking this will scan for cameras again.
+	<h3>Add to Previous Movie</h3>
+	Opens a window asking you to select a frame from a pre-existing movie. You can choose any frame you want, but
+	the movie <em>must</em> be in the standard "Image Files/YYYY-MM-DD-HH-MM-SS/YYYY-MM-DD-HH-MM-SS_Frame####.tif" format and
+	location. If it is anywhere else you must use the "Import and Clean Frames" button instead. Adding to a previous 
+	movie will reset your date stamp to that movie's original stamp, and update the number of frames to reflect the 
+	frames you have already taken. New frames will simply be added to the end of that movie, just like you never
+	closed it.
+	<h3>Import and Clean Frames</h3>
+	The basic idea of this button is to let you choose any folder full of images anywhere on your computer and
+	create a stop-motion animation from them. What is actually does is scan through the folder you select and
+	locate all of the TIFF files (*.tif). It lists them alphabetically, then <em>moves</em> and <em>renames</em> them
+	into a folder following the standard folder structure. This has a couple of uses: first, you can use it to
+	move frames from somewhere else on your computer into the place where this program expects them to be. Second,
+	you can use it to re-number frames of a movie where you have manually deleted (or added) frames from the
+	middle. 
+	<h3>Help</h3>
+	Opens this help file in your default web browser.
+	<h3>Take Photo</h3>
+	Stores the currently-displayed webcam image into a TIFF-formatted image file in a folder named with the 
+	date stamp displayed in the upper left corner of the window. We use TIFF so that playback is smooth, but keep
+	in mind that these are pretty large files (around 1MB) so you need to make sure that the actual executable file
+	for this program is located someplace with enough storage for all the movies.
+	<h3>Delete Last Photo</h3>
+	Deletes the most recently-taken photo. To delete photos from the middle of the movie you have to manually remove the 
+	files and then import those frames using the "Import and Clean Frames" button.
+	<h3>Play</h3>
+	Loads up each frame and displays it for 1/15 of a second. Frames are loaded from their files on the disk, so we
+	use the TIFF format so the load is fast. Playback is always 15 frames per second.
+</body>
+</html>

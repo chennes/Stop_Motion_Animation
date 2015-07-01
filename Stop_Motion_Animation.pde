@@ -52,43 +52,49 @@ mode is active, we are just showing a single pre-recorded frame.
 import processing.video.*;
 import controlP5.*;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
-Capture cam;
-ControlP5 cp5;
-Textlabel folderNameLabel;
-Textlabel numFramesLabel;
-Slider frameSlider;
 
-String groupName = "";
-String lastFileName = "";
-String filePath = "";
-int sceneNumber = 1;
-int numberOfFrames = 0;
-PImage loadedFrame;
-PImage liveFrame;
-boolean weAreLive = true;
-boolean weAreInReplay = false;
-int currentFrame = 0;
+String _groupName = "";
+String _lastFileName = "";
+String _filePath = "";
+String _CWD = "";
+int _numberOfFrames = 0;
+PImage _loadedFrame;
+PImage _liveFrame;
+boolean _weAreLive = true;
+boolean _weAreInReplay = false;
+int _currentFrame = 0;
 
 // GUI Constants
-int BORDER_WIDTH = 10;
 int BUTTON_WIDTH = 150;
 int BUTTON_HEIGHT = 25;
 int STANDARD_SPACING = 10;
 
 int WEBCAM_LEFT = 2*STANDARD_SPACING+BUTTON_WIDTH;
 int WEBCAM_UPPER = 3*STANDARD_SPACING+2*BUTTON_HEIGHT;
+
+// Note that changing these doesn't actually change the webcam resolution selected, you will have
+// to do that in the code below, in the setupCamera() function...
 int WEBCAM_WIDTH = 640;
 int WEBCAM_HEIGHT = 480;
 
 int WINDOW_WIDTH = WEBCAM_WIDTH + 3*STANDARD_SPACING + BUTTON_WIDTH;
 int WINDOW_HEIGHT = WEBCAM_HEIGHT + 5*STANDARD_SPACING + 3 * BUTTON_HEIGHT;
 
+// GUI Access Variables
+Capture cam;
+ControlP5 cp5;
+Textlabel folderNameLabel;
+Textlabel numFramesLabel;
+Slider frameSlider;
+
 
 void setup () {
   setupUserInterface ();
-  setupDefaultGroupName ();
-  setupCamera ();
+  startNewMovie ();
 }
 
 void setupUserInterface () {
@@ -110,9 +116,19 @@ void setupUserInterface () {
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
   
-  cp5.addButton ("Load previous photos")
+  cp5.addButton ("Add to previous movie")
     .setPosition (3*STANDARD_SPACING+2*BUTTON_WIDTH, STANDARD_SPACING)
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
+    ;
+  
+  cp5.addButton ("Import and clean frames")
+    .setPosition (WINDOW_WIDTH-BUTTON_WIDTH-2*STANDARD_SPACING-BUTTON_WIDTH/3, STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
+    ;
+  
+  cp5.addButton ("Help")
+    .setPosition (WINDOW_WIDTH-BUTTON_WIDTH/3-STANDARD_SPACING, STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH/3,BUTTON_HEIGHT)
     ;
     
   cp5.addTextlabel ("Number of Frames")
@@ -166,10 +182,11 @@ void setupUserInterface () {
     .setSliderMode (Slider.FIX)
     .setDecimalPrecision (0)
     ;
+    
 }
  
  
- void setupDefaultGroupName () {  
+ void setupDefaultGroupName () { 
   // We want a group name that is unlikely to conflict with any previously-created group
   // names, so just use the date and time. 
   int d = day();
@@ -185,8 +202,9 @@ void setupUserInterface () {
   date[3] = nf(h,2);
   date[4] = nf(min,2);
   date[5] = nf(sec,2);
-  groupName = join(date, "-");
-  folderNameLabel.setText(groupName);
+  _groupName = join(date, "-");
+  folderNameLabel.setText(_groupName);
+  _CWD = sketchPath("");
 }
   
 void setupCamera () {
@@ -198,7 +216,6 @@ void setupCamera () {
   
   if (cameras.length == 0) {
     println ("There are no cameras connected.");
-    //exit();
   } else {
     println ("Available cameras:");
     for (int i = 0; i < cameras.length; i++) {
@@ -234,24 +251,15 @@ public void controlEvent(ControlEvent theEvent) {
     } else if (eventName == "  >>> Play >>>") {
       playFrames();
     } else if (eventName == "Start a new movie") {
-      setupDefaultGroupName();
-      setupCamera();
-      numberOfFrames = 0;
-      weAreLive = true;
-      weAreInReplay = false;
-      currentFrame = 0;
-      numFramesLabel.setText (nfc(numberOfFrames));
-    } else if (eventName == "Jump to Live View") {
-      weAreLive = true;
-      weAreInReplay = false;
-      currentFrame = numberOfFrames+1;
-      numFramesLabel.setText (nfc(numberOfFrames));
-      frameSlider.setRange (1, numberOfFrames);
-      frameSlider.setValue (numberOfFrames);
+      startNewMovie();
     } else if (eventName == "Delete Last Photo") {
       deleteFrame();
-    } else if (eventName == "Click here to load previous photos") {
+    } else if (eventName == "Add to previous movie") {
       loadPrevious();
+    } else if (eventName == "Import and clean frames") {
+      cleanFolder();
+    }else if (eventName == "Help") {
+      open (_CWD+"data/help/Help.html");
     }
   }
 }
@@ -259,29 +267,28 @@ public void controlEvent(ControlEvent theEvent) {
 
 public void takePhoto ()
 {
-  weAreInReplay = false;
-  weAreLive = true;
+  _weAreInReplay = false;
+  _weAreLive = true;
   int badCounter = 0;
   int MAX_BAD_FRAMES_BEFORE_GIVING_UP = 100;
   boolean success = false;
   
   while (badCounter < MAX_BAD_FRAMES_BEFORE_GIVING_UP && success == false) {
-    if (cam != null && cam.available() == true) {
-      cam.read();
-      loadedFrame = cam.get();
-      numberOfFrames++;
-      numFramesLabel.setText (nfc(numberOfFrames));
-      frameSlider.setRange (1, numberOfFrames);
-      frameSlider.setValue (numberOfFrames);
+    if (_liveFrame != null) {
+      _loadedFrame = _liveFrame;
+      _numberOfFrames++;
+      numFramesLabel.setText (nfc(_numberOfFrames));
+      frameSlider.setRange (1, _numberOfFrames);
+      frameSlider.setValue (_numberOfFrames);
       
       // Create the filename:
       String[] parts = new String[3];
       parts[0] = "Image Files";
-      parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-      parts[2] = createFilename (groupName, numberOfFrames);
+      parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+      parts[2] = createFilename (_groupName, _numberOfFrames);
       String filename = join (parts,File.separator);
-      loadedFrame.save (filename);
-      lastFileName = filename;
+      _loadedFrame.save (filename);
+      _lastFileName = filename;
       print ("Wrote frame to ");
       println (filename);
       success = true;
@@ -299,9 +306,20 @@ public void takePhoto ()
 private String createFilename (String group, int frame)
 {
   // Strip the group name of anything but letters, numbers, dashes, and underscores
-  String sanitizedGroupName = group.replaceAll("[^a-zA-Z0-9\\-_]", "");
-  String filename = sanitizedGroupName + "_Frame" + nf(frame,4) + ".tif";
+  String sanitized_groupName = group.replaceAll("[^a-zA-Z0-9\\-_]", "");
+  String filename = sanitized_groupName + "_Frame" + nf(frame,4) + ".tif";
   return filename;
+}
+
+private void startNewMovie ()
+{
+  setupDefaultGroupName();
+  setupCamera();
+  _numberOfFrames = 0;
+  _weAreLive = true;
+  _weAreInReplay = false;
+  _currentFrame = 0;
+  numFramesLabel.setText (nfc(_numberOfFrames));
 }
 
 private void playFrames ()
@@ -309,24 +327,24 @@ private void playFrames ()
   println ("Playing frames");
   
   int fps = 15;
-  weAreLive = false;
-  weAreInReplay = true;
+  _weAreLive = false;
+  _weAreInReplay = true;
   frameRate (fps);
-  currentFrame = 1;
+  _currentFrame = 1;
 }
 
 private void deleteFrame ()
 {
-  if (numberOfFrames > 0) {
-    File f = new File (lastFileName);
+  if (_numberOfFrames > 0) {
+    File f = new File (_lastFileName);
     if (f.exists()) {
       f.delete();
     }
-    numberOfFrames--;
-    currentFrame = numberOfFrames;
-    numFramesLabel.setText (nfc(numberOfFrames));
-    frameSlider.setRange (1, numberOfFrames);
-    frameSlider.setValue (numberOfFrames);
+    _numberOfFrames--;
+    _currentFrame = _numberOfFrames;
+    numFramesLabel.setText (nfc(_numberOfFrames));
+    frameSlider.setRange (1, _numberOfFrames);
+    frameSlider.setValue (_numberOfFrames);
   }
 }
 
@@ -339,18 +357,18 @@ private void loadPrevious ()
 void loadPreviousFromFile (File selection)
 {
   if (selection != null) {
-    numberOfFrames = 0;
+    _numberOfFrames = 0;
     String pathToFile = selection.getPath();
-    filePath = pathToFile.substring(0,pathToFile.lastIndexOf(File.separator));
+    _filePath = pathToFile.substring(0,pathToFile.lastIndexOf(File.separator));
     String filename = selection.toPath().getFileName().toString();
     
     // We have to figure out the sequence:
     String[] parts = filename.split ("[_.]");
-    groupName = parts[0];
+    _groupName = parts[0];
     int selectedFrameNumber = Integer.parseInt(parts[1].substring(5));
     String extension = parts[2];
     
-    folderNameLabel.setText (groupName);
+    folderNameLabel.setText (_groupName);
     
     // Now actually load up the old photos:
     int loadingPhotoNumber = 1;
@@ -360,10 +378,10 @@ void loadPreviousFromFile (File selection)
     while (lastLoadWasSuccessful) {
       lastLoadWasSuccessful = LoadFrame (loadingPhotoNumber);
       if (lastLoadWasSuccessful == true) {
-        numberOfFrames++;
-        numFramesLabel.setText (nfc(numberOfFrames));
-        frameSlider.setRange (1, numberOfFrames);
-        frameSlider.setValue (numberOfFrames);
+        _numberOfFrames++;
+        numFramesLabel.setText (nfc(_numberOfFrames));
+        frameSlider.setRange (1, _numberOfFrames);
+        frameSlider.setValue (_numberOfFrames);
       } else {
         failCount++;
       }
@@ -383,8 +401,8 @@ boolean LoadFrame (int frameNumber)
   boolean lastLoadWasSuccessful = false;
   String[] parts = new String[3];
   parts[0] = "Image Files";
-  parts[1] = groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-  parts[2] = createFilename (groupName, frameNumber);
+  parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+  parts[2] = createFilename (_groupName, frameNumber);
       
   String filename = join (parts,File.separator);
   println (filename);
@@ -393,11 +411,75 @@ boolean LoadFrame (int frameNumber)
   if (newFrame == null) {
     lastLoadWasSuccessful = false;
   } else {
-    loadedFrame = newFrame;
+    _loadedFrame = newFrame;
     lastLoadWasSuccessful = true;
   }
   
   return lastLoadWasSuccessful;
+}
+
+
+void cleanFolder () {
+  // Find all of the files in the folder that end in .tif, renumber them, and reload.
+  selectFolder("Choose the folder containing the images to rename", "cleanSelectedFolder");
+}
+
+
+void cleanSelectedFolder (File selectedFolder) {
+  if (selectedFolder != null) {
+    File[] fList = selectedFolder.listFiles();
+    ArrayList<File> tifFiles = new ArrayList<File>();
+    for (File file : fList) {
+      if (file.isFile() && match(file.getName(), "^(.*)\\.tif$") != null) {
+        tifFiles.add (file);
+      }
+    }
+    Collections.sort(tifFiles); // Make sure it's alphabetical
+    
+    int frameCounter = 1;
+    ArrayList<File> newTempFiles = new ArrayList<File>();
+    for (File file: tifFiles) {
+      try{
+        String filename =  selectedFolder.getCanonicalPath() + File.separator + "RENAMING_TEMP_FILE_Frame" + nf(frameCounter,4) + ".tif";
+        PImage newFrame = loadImage (filename);
+      } catch (IOException e) {
+        println ("getCanonicalPath failed! I have no idea what that means. Giving up.");
+        return;
+      }
+      frameCounter++;
+    }
+    frameCounter = 1;
+    String[] parts = new String[3];
+    parts[0] = _CWD;
+    parts[1] = "Image Files";
+    parts[2] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+    File directory = new File (join (parts,File.separator));
+    File finalFile = null;
+    try {
+      Files.createDirectory (directory.toPath());
+    } catch (Exception e) {
+    }
+    for (File file: newTempFiles) {
+      try {
+        String filename = directory.getCanonicalPath() + File.separator + createFilename (_groupName, frameCounter);
+        finalFile = new File (filename);
+        boolean status = file.renameTo (finalFile);
+        if (status) {
+          String msg = "Renamed " + file.getName() + " to " + finalFile; 
+          println (msg);
+        } else {
+          String msg = "Rename " + file.getName() + " to " + finalFile + " FAILED... stopping"; 
+          println (msg);
+          return;
+        }
+      } catch (Exception e) {
+      }
+      frameCounter++;
+    }
+    if (finalFile != null) {
+      loadPreviousFromFile (finalFile);
+    }
+  }
 }
 
 
@@ -417,43 +499,43 @@ void draw() {
   line (STANDARD_SPACING,2*STANDARD_SPACING+BUTTON_HEIGHT,
         WINDOW_WIDTH-STANDARD_SPACING,2*STANDARD_SPACING+BUTTON_HEIGHT);
   
-  if (weAreLive) {
+  if (_weAreLive) {
     boolean cameraHasGoodData = (cam != null && cam.available() == true);
     if (cameraHasGoodData) {
-      if (keyPressed && keyCode == CONTROL && loadedFrame != null) {
-        image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
+      if (keyPressed && keyCode == CONTROL && _loadedFrame != null) {
+        image (_loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
       } else {
         cam.read();
-        liveFrame = cam.get();
-        image (liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
-        if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
-          blend (loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
+        _liveFrame = cam.get();
+        image (_liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
+        if (keyPressed && keyCode == SHIFT && _loadedFrame != null) {
+          blend (_loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
         }
       }
-    } else if (liveFrame != null) {
-      image (liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
-      if (keyPressed && keyCode == SHIFT && loadedFrame != null) {
-        blend (loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
+    } else if (_liveFrame != null) {
+      image (_liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
+      if (keyPressed && keyCode == SHIFT && _loadedFrame != null) {
+        blend (_loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
       }
     }
-  } else if (weAreInReplay) {
+  } else if (_weAreInReplay) {
     // Show the current frame instead:
-    boolean success = LoadFrame (currentFrame);
+    boolean success = LoadFrame (_currentFrame);
     if (success == true) {
-      image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
-      currentFrame++;
-      frameSlider.setValue (currentFrame);
+      image (_loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
+      _currentFrame++;
+      frameSlider.setValue (_currentFrame);
     }
-    if (currentFrame > numberOfFrames || success == false) {
-      weAreLive = true;
-      weAreInReplay = false;
-      currentFrame = numberOfFrames+1;
-      frameSlider.setValue (currentFrame);
+    if (_currentFrame > _numberOfFrames || success == false) {
+      _weAreLive = true;
+      _weAreInReplay = false;
+      _currentFrame = _numberOfFrames+1;
+      frameSlider.setValue (_currentFrame);
       frameRate (30);
     }
   } else {
-    if (currentFrame <= numberOfFrames && loadedFrame != null) {
-      image (loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
+    if (_currentFrame <= _numberOfFrames && _loadedFrame != null) {
+      image (_loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
     } else {
       // Just do nothing, I guess...
     }
