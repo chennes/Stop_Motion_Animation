@@ -258,7 +258,7 @@ public void controlEvent(ControlEvent theEvent) {
       loadPrevious();
     } else if (eventName == "Import and clean frames") {
       cleanFolder();
-    }else if (eventName == "Help") {
+    } else if (eventName == "Help") {
       open (_CWD+"data/help/Help.html");
     }
   }
@@ -272,34 +272,25 @@ public void takePhoto ()
   int badCounter = 0;
   int MAX_BAD_FRAMES_BEFORE_GIVING_UP = 100;
   boolean success = false;
-  
-  while (badCounter < MAX_BAD_FRAMES_BEFORE_GIVING_UP && success == false) {
-    if (_liveFrame != null) {
-      _loadedFrame = _liveFrame;
-      _numberOfFrames++;
-      numFramesLabel.setText (nfc(_numberOfFrames));
-      frameSlider.setRange (1, _numberOfFrames);
-      frameSlider.setValue (_numberOfFrames);
-      
-      // Create the filename:
-      String[] parts = new String[3];
-      parts[0] = "Image Files";
-      parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-      parts[2] = createFilename (_groupName, _numberOfFrames);
-      String filename = join (parts,File.separator);
-      _loadedFrame.save (filename);
-      _lastFileName = filename;
-      print ("Wrote frame to ");
-      println (filename);
-      success = true;
-    } else {
-      // If we didn't get data from the camera, wait a bit before trying again
-      delay (10);
-    }
-    badCounter++; // Keep track of the number of times we failed to get the frame
-  }
-  if (badCounter == MAX_BAD_FRAMES_BEFORE_GIVING_UP) {
-    println ("Unable to grab frame.");
+
+  if (_liveFrame != null) {
+    _loadedFrame = _liveFrame;
+    _numberOfFrames++;
+    numFramesLabel.setText (nfc(_numberOfFrames));
+    frameSlider.setRange (1, _numberOfFrames);
+    frameSlider.setValue (_numberOfFrames);
+    
+    // Create the filename:
+    String[] parts = new String[3];
+    parts[0] = _CWD + File.separator + "Image Files";
+    parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+    parts[2] = createFilename (_groupName, _numberOfFrames);
+    String filename = join (parts,File.separator);
+    _loadedFrame.save (filename);
+    _lastFileName = filename;
+    print ("Wrote frame to ");
+    println (filename);
+    success = true;
   }
 }
 
@@ -345,6 +336,9 @@ private void deleteFrame ()
     numFramesLabel.setText (nfc(_numberOfFrames));
     frameSlider.setRange (1, _numberOfFrames);
     frameSlider.setValue (_numberOfFrames);
+    if (_currentFrame > 0) {
+      LoadFrame (_currentFrame);
+    }
   }
 }
 
@@ -436,48 +430,14 @@ void cleanSelectedFolder (File selectedFolder) {
     }
     Collections.sort(tifFiles); // Make sure it's alphabetical
     
-    int frameCounter = 1;
-    ArrayList<File> newTempFiles = new ArrayList<File>();
     for (File file: tifFiles) {
       try{
-        String filename =  selectedFolder.getCanonicalPath() + File.separator + "RENAMING_TEMP_FILE_Frame" + nf(frameCounter,4) + ".tif";
-        PImage newFrame = loadImage (filename);
+        _liveFrame = loadImage (file.getCanonicalPath());
+        takePhoto();
       } catch (IOException e) {
         println ("getCanonicalPath failed! I have no idea what that means. Giving up.");
         return;
       }
-      frameCounter++;
-    }
-    frameCounter = 1;
-    String[] parts = new String[3];
-    parts[0] = _CWD;
-    parts[1] = "Image Files";
-    parts[2] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
-    File directory = new File (join (parts,File.separator));
-    File finalFile = null;
-    try {
-      Files.createDirectory (directory.toPath());
-    } catch (Exception e) {
-    }
-    for (File file: newTempFiles) {
-      try {
-        String filename = directory.getCanonicalPath() + File.separator + createFilename (_groupName, frameCounter);
-        finalFile = new File (filename);
-        boolean status = file.renameTo (finalFile);
-        if (status) {
-          String msg = "Renamed " + file.getName() + " to " + finalFile; 
-          println (msg);
-        } else {
-          String msg = "Rename " + file.getName() + " to " + finalFile + " FAILED... stopping"; 
-          println (msg);
-          return;
-        }
-      } catch (Exception e) {
-      }
-      frameCounter++;
-    }
-    if (finalFile != null) {
-      loadPreviousFromFile (finalFile);
     }
   }
 }
