@@ -17,9 +17,9 @@ RUNNING:
 6) Click ">>>PLAY>>>" to see the movie.
 
 TIPS:
-* Holding down the Control key will cause the last frame taken to be displayed. This can help when
+* Holding down the z key will cause the last frame taken to be displayed. This can help when
   lining up the next shot.
-* Holding down the Shift key will show a transparent overlay of the previous shot, again, for lining
+* Holding down the x key will show a transparent overlay of the previous shot, again, for lining
   up your next shot.
 * You can reload a previous set of frames, which will automatically set your group name, scene
   number, and current frame, so you can append to a previous movie.
@@ -66,7 +66,9 @@ PImage _loadedFrame;
 PImage _liveFrame;
 boolean _weAreLive = true;
 boolean _weAreInReplay = false;
+boolean _weAreWaiting = false;
 int _currentFrame = 0;
+int _waitTime = 0;
 
 // GUI Constants
 int BUTTON_WIDTH = 150;
@@ -89,20 +91,52 @@ Capture cam;
 ControlP5 cp5;
 Textlabel folderNameLabel;
 Textlabel numFramesLabel;
+Textlabel infoLabel;
 Slider frameSlider;
 
+void settings () {
+    size (WINDOW_WIDTH, WINDOW_HEIGHT); // MUST be the first line in setup (according to the Processing documentation)
+}
 
 void setup () {
   setupUserInterface ();
   startNewMovie ();
 }
 
+
+
+
+void delay(int d)
+{
+  int time = millis();
+  while(millis() - time <= d); // Just loop until we've let enough time pass
+}
+
+void internalPauseCall ()
+{
+  _weAreLive = false;
+  _weAreInReplay = false;
+  _weAreWaiting = true;
+  delay (_waitTime);
+  _weAreLive = true;
+  _weAreInReplay = false;
+  _weAreWaiting = false;
+}
+
+void pauseUpdates (int d)
+{
+  _waitTime = d;
+  thread ("internalPauseCall"); // This doesn't freeze the UI, it just doesn't show the camera output or change the info label text
+}
+
 void setupUserInterface () {
-  size (WINDOW_WIDTH, WINDOW_HEIGHT);
   cp5 = new ControlP5 (this);
   
   PFont boldFont;
   boldFont = loadFont("MeiryoUI-Bold-12.vlw");
+  
+  PFont largeFont;
+  largeFont = loadFont("SegoeUI-Bold-16.vlw");
   
   // GUI
   folderNameLabel = cp5.addTextlabel("Image Folder Name")
@@ -111,7 +145,7 @@ void setupUserInterface () {
     .setFont (boldFont)
     ;
   
-  cp5.addButton ("Start a new movie")
+  cp5.addButton ("Save and start a new movie")
     .setPosition (2*STANDARD_SPACING+BUTTON_WIDTH, STANDARD_SPACING)
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
@@ -155,18 +189,24 @@ void setupUserInterface () {
   }, ' ');
   
   cp5.addTextlabel ("Tip2")
-    .setText ("<CTRL> TO SEE PREVIOUS FRAME")
+    .setText ("<z> TO SEE PREVIOUS FRAME")
     .setPosition (STANDARD_SPACING, 4*STANDARD_SPACING+3*BUTTON_HEIGHT)
     ;
     
   cp5.addTextlabel ("Tip3")
-    .setText ("<SHIFT> TO SEE OVERLAY")
+    .setText ("<x> TO SEE OVERLAY")
     .setPosition (STANDARD_SPACING, 4*STANDARD_SPACING+4*BUTTON_HEIGHT)
     ;
     
-  cp5.addButton ("Delete Last Photo")
+  cp5.addButton ("Delete last photo")
     .setPosition (STANDARD_SPACING,7*STANDARD_SPACING+4*BUTTON_HEIGHT)
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
+    ;
+    
+  infoLabel = cp5.addTextlabel ("Info")
+    .setText ("Starting up...\nplease wait")
+    .setPosition (STANDARD_SPACING, 20*STANDARD_SPACING+4*BUTTON_HEIGHT)
+    .setFont (largeFont)
     ;
        
   cp5.addButton ("  >>> Play >>>")
@@ -208,6 +248,9 @@ void setupUserInterface () {
 }
   
 void setupCamera () {
+  _weAreLive = false;
+  _weAreInReplay = false;
+  _weAreWaiting = true;
   if (cam != null) {
     cam.stop();
     cam = null;
@@ -215,7 +258,7 @@ void setupCamera () {
   String[] cameras = Capture.list();
   
   if (cameras.length == 0) {
-    println ("There are no cameras connected.");
+    infoLabel.setValue ("There are no cameras connected.");
   } else {
     println ("Available cameras:");
     for (int i = 0; i < cameras.length; i++) {
@@ -231,16 +274,48 @@ void setupCamera () {
       }
     }
     if (cameraNumber < 0) {
-      println ("No camera says it supports 640x480 resolution!");
+      infoLabel.setValue ("No camera says it supports 640x480 resolution!");
     } else {
-      print ("Selected camera ");
-      print (cameraNumber);
-      print (": ");
-      println (cameras[cameraNumber]);
-      cam = new Capture (this, cameras[cameraNumber]);
-      cam.start();
+	
+	    boolean workingCamera = false;      
+      while (!workingCamera && cameraNumber > 0) {
+        _weAreLive = false;
+        _weAreInReplay = false;
+        _weAreWaiting = true;
+        print ("Selected camera ");
+        print (cameraNumber);
+        print (": ");
+        println (cameras[cameraNumber]);
+        cam = new Capture (this, cameras[cameraNumber]);
+        cam.start();
+        
+        // Test it...
+        int counter = 1;
+        while (!cam.available() && counter <= 10) {
+          print ("Waiting for camera... ");
+          print (counter);
+          println (" of 10");
+          delay (1000);
+          counter++;
+        }
+        
+        if (cam.available()) {
+          cam.read();
+          workingCamera = true;
+          infoLabel.setValue ("");
+        } else {
+          println ("Camera is not available, moving onto the next one...");
+          cameraNumber--;
+          cam.stop();
+          cam = null;
+        }
+      }
     }
   }
+  
+  _weAreLive = true;
+  _weAreInReplay = false;
+  _weAreWaiting = false;
 }
 
 public void controlEvent(ControlEvent theEvent) {
@@ -250,16 +325,16 @@ public void controlEvent(ControlEvent theEvent) {
       takePhoto();
     } else if (eventName == "  >>> Play >>>") {
       playFrames();
-    } else if (eventName == "Start a new movie") {
+    } else if (eventName == "Save and start a new movie") {
       startNewMovie();
-    } else if (eventName == "Delete Last Photo") {
+    } else if (eventName == "Delete last photo") {
       deleteFrame();
     } else if (eventName == "Add to previous movie") {
       loadPrevious();
     } else if (eventName == "Import and clean frames") {
       cleanFolder();
     } else if (eventName == "Help") {
-      open (_CWD+"data/help/Help.html");
+      launch (_CWD+"data/help/Help.html");
     }
   }
 }
@@ -287,10 +362,26 @@ public void takePhoto ()
     parts[2] = createFilename (_groupName, _numberOfFrames);
     String filename = join (parts,File.separator);
     _loadedFrame.save (filename);
-    _lastFileName = filename;
-    print ("Wrote frame to ");
-    println (filename);
-    success = true;
+    
+    // Make sure it worked:
+    PImage img;
+    img = loadImage(filename);
+    if (img == null) {
+      infoLabel.setValue ("Failed to take photo!\nAre you out of space?");
+      print ("Failed to create the image file ");
+      print (filename);
+      println (" -- Is your drive out of space?");
+      success = false;
+    } else {
+      _lastFileName = filename;
+      print ("Wrote frame to ");
+      println (filename);
+      success = true;
+    }
+    if (!success) {
+      infoLabel.setText("Saving failed!\nCheck available space");
+      delay (10000);
+    }
   }
 }
 
@@ -305,7 +396,8 @@ private String createFilename (String group, int frame)
 private void startNewMovie ()
 {
   setupDefaultGroupName();
-  setupCamera();
+  infoLabel.setValue ("Waiting for camera...");
+  thread("setupCamera");
   _numberOfFrames = 0;
   _weAreLive = true;
   _weAreInReplay = false;
@@ -314,9 +406,7 @@ private void startNewMovie ()
 }
 
 private void playFrames ()
-{
-  println ("Playing frames");
-  
+{  
   int fps = 15;
   _weAreLive = false;
   _weAreInReplay = true;
@@ -350,6 +440,8 @@ private void loadPrevious ()
 
 void loadPreviousFromFile (File selection)
 {
+  _weAreLive = false;
+  _weAreInReplay = false;
   if (selection != null) {
     _numberOfFrames = 0;
     String pathToFile = selection.getPath();
@@ -376,16 +468,26 @@ void loadPreviousFromFile (File selection)
         numFramesLabel.setText (nfc(_numberOfFrames));
         frameSlider.setRange (1, _numberOfFrames);
         frameSlider.setValue (_numberOfFrames);
+        
+        String[] msgArray = new String[2];
+        msgArray[0] = "Loaded\nFrame ";
+        msgArray[1] = nf (_numberOfFrames);
+        String msg = join (msgArray, "");
+        infoLabel.setValue (msg);
+        
       } else {
         failCount++;
       }
       loadingPhotoNumber++;
     }
     loadingPhotoNumber--;
-    print ("Successfully loaded ");
-    print (loadingPhotoNumber);
-    print (" photos from files like ");
-    println (filename);
+    String[] s = new String[3];
+    s[0] = "Loaded ";
+    s[1] =  nf(loadingPhotoNumber);
+    s[2] = " photos";
+    String joined = join (s,"");
+    infoLabel.setValue (joined);
+    pauseUpdates (2000);
   }
 }
 
@@ -443,15 +545,6 @@ void cleanSelectedFolder (File selectedFolder) {
 }
 
 
-void delay(int delay)
-{
-  int time = millis();
-  while(millis() - time <= delay); // Just loop until we've let enough time pass
-}
-
-
-
-
 void draw() {
   background (0,0,0);
   stroke (255,255,255);
@@ -462,19 +555,23 @@ void draw() {
   if (_weAreLive) {
     boolean cameraHasGoodData = (cam != null && cam.available() == true);
     if (cameraHasGoodData) {
-      if (keyPressed && keyCode == CONTROL && _loadedFrame != null) {
+      if (keyPressed && key == 'z' && _loadedFrame != null) {
+        infoLabel.setValue ("(Previous frame)");
         image (_loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
       } else {
         cam.read();
         _liveFrame = cam.get();
         image (_liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
-        if (keyPressed && keyCode == SHIFT && _loadedFrame != null) {
+        if (keyPressed && key == 'x' && _loadedFrame != null) {
+          infoLabel.setValue ("(Overlay view)");
           blend (_loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
+        } else {
+          infoLabel.setValue ("(Live view)");
         }
       }
     } else if (_liveFrame != null) {
       image (_liveFrame, WEBCAM_LEFT, WEBCAM_UPPER);
-      if (keyPressed && keyCode == SHIFT && _loadedFrame != null) {
+      if (keyPressed && key == 'x' && _loadedFrame != null) {
         blend (_loadedFrame, 0, 0, WEBCAM_WIDTH, WEBCAM_HEIGHT, WEBCAM_LEFT, WEBCAM_UPPER, WEBCAM_WIDTH, WEBCAM_HEIGHT, LIGHTEST);
       }
     }
@@ -493,6 +590,8 @@ void draw() {
       frameSlider.setValue (_currentFrame);
       frameRate (30);
     }
+  } else if (_weAreWaiting) {
+    // Do not update the info string here!
   } else {
     if (_currentFrame <= _numberOfFrames && _loadedFrame != null) {
       image (_loadedFrame, WEBCAM_LEFT, WEBCAM_UPPER);
@@ -501,5 +600,3 @@ void draw() {
     }
   }
 }
-
-
