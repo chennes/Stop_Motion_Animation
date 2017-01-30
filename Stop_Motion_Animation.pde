@@ -57,6 +57,10 @@ import java.nio.file.Path;
 import java.util.*;
 
 
+// Sets the playback and encoding frame rate
+static final int FRAMERATE = 15;
+
+
 String _groupName = "";
 String _lastFileName = "";
 String _filePath = "";
@@ -69,6 +73,10 @@ boolean _weAreInReplay = false;
 boolean _weAreWaiting = false;
 int _currentFrame = 0;
 int _waitTime = 0;
+
+// For actually encoding the movie...
+boolean _weHaveAudio = false;
+File _audioFile;
 
 // GUI Constants
 int BUTTON_WIDTH = 150;
@@ -86,6 +94,8 @@ int WEBCAM_HEIGHT = 480;
 int WINDOW_WIDTH = WEBCAM_WIDTH + 3*STANDARD_SPACING + BUTTON_WIDTH;
 int WINDOW_HEIGHT = WEBCAM_HEIGHT + 5*STANDARD_SPACING + 3 * BUTTON_HEIGHT;
 
+String _pathToFFMPEG;
+
 // GUI Access Variables
 Capture cam;
 ControlP5 cp5;
@@ -93,9 +103,26 @@ Textlabel folderNameLabel;
 Textlabel numFramesLabel;
 Textlabel infoLabel;
 Slider frameSlider;
+ControlGroup messageBox;
 
 void settings () {
-    size (WINDOW_WIDTH, WINDOW_HEIGHT); // MUST be the first line in setup (according to the Processing documentation)
+  size (WINDOW_WIDTH, WINDOW_HEIGHT); // MUST be the first line in setup (according to the Processing documentation)
+  
+  // Figure out the path to FFMPEG
+  String os = System.getProperty("os.name");
+  boolean isWindows = (match(os,"Windows") != null);
+  boolean isLinux = (match(os,"Linux") != null);
+  boolean isMac = (match(os,"Mac") != null);
+  if (isWindows) {
+    _pathToFFMPEG = dataPath("") + "\\ffmpeg-3.2.2-win64-static\\bin\\ffmpeg.exe";
+  } else if (isLinux) {
+    _pathToFFMPEG = dataPath("") + "/ffmpeg-3.2.2-linux64-static/bin/ffmpeg";
+  } else if (isMac) {
+    println ("Mac users need to manually download and install ffmpeg to Data/ffmpeg-3.2.2-mac64-static/bin/ffmpeg");
+    _pathToFFMPEG = dataPath("") + "/ffmpeg-3.2.2-mac64-static/bin/ffmpeg";
+  } else {
+    println ("Unrecognized OS: " + os);
+  }
 }
 
 void setup () {
@@ -155,9 +182,14 @@ void setupUserInterface () {
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
     ;
   
-  cp5.addButton ("Import and clean frames")
-    .setPosition (WINDOW_WIDTH-BUTTON_WIDTH-2*STANDARD_SPACING-BUTTON_WIDTH/3, STANDARD_SPACING)
+  cp5.addButton ("Create final movie")
+    .setPosition (4*STANDARD_SPACING+3*BUTTON_WIDTH, STANDARD_SPACING)
     .setSize(BUTTON_WIDTH,BUTTON_HEIGHT)
+    ;
+  
+  cp5.addButton ("Import")
+    .setPosition (WINDOW_WIDTH-BUTTON_WIDTH/2-2*STANDARD_SPACING-BUTTON_WIDTH/3, STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH/2,BUTTON_HEIGHT)
     ;
   
   cp5.addButton ("Help")
@@ -327,11 +359,13 @@ public void controlEvent(ControlEvent theEvent) {
       playFrames();
     } else if (eventName == "Save and start a new movie") {
       startNewMovie();
+    } else if (eventName == "Create final movie") {
+      saveMovie();
     } else if (eventName == "Delete last photo") {
       deleteFrame();
     } else if (eventName == "Add to previous movie") {
       loadPrevious();
-    } else if (eventName == "Import and clean frames") {
+    } else if (eventName == "Import") {
       cleanFolder();
     } else if (eventName == "Help") {
       launch (_CWD+"data/help/Help.html");
@@ -407,10 +441,9 @@ private void startNewMovie ()
 
 private void playFrames ()
 {  
-  int fps = 15;
   _weAreLive = false;
   _weAreInReplay = true;
-  frameRate (fps);
+  frameRate (FRAMERATE);
   _currentFrame = 1;
 }
 
@@ -543,6 +576,95 @@ void cleanSelectedFolder (File selectedFolder) {
     }
   }
 }
+
+
+void saveMovie () {
+  askForAudio();
+}
+
+void askForAudio() {
+  messageBox = cp5.addGroup("messageBox",width/2 - 150,100,300);
+  messageBox.setBackgroundHeight(120);
+  messageBox.setBackgroundColor(color(0,0.9));
+  messageBox.hideBar();
+  Textlabel l = cp5.addTextlabel("messageBoxLabel","Do you have a soundtrack for your movie?",20,20);
+  l.moveTo(messageBox);
+  
+  Button b1 = cp5.addButton("buttonYesAudio",0,65,80,80,24);
+  b1.moveTo(messageBox);
+  b1.setColorBackground(color(40));
+  b1.setColorActive(color(20));
+  b1.setBroadcast(false); 
+  b1.setValue(1);
+  b1.setBroadcast(true);
+  b1.setCaptionLabel("Yes");
+  
+  Button b2 = cp5.addButton("buttonNoAudio",0,155,80,80,24);
+  b2.moveTo(messageBox);
+  b2.setColorBackground(color(40));
+  b2.setColorActive(color(20));
+  b2.setBroadcast(false);
+  b2.setValue(0);
+  b2.setBroadcast(true);
+  b2.setCaptionLabel("No");
+}
+
+// function buttonOK will be triggered when pressing
+// the OK button of the messageBox.
+void buttonYesAudio(int theValue) {
+  messageBox.hide();
+  selectInput("Choose a file to use as your soundtrack", "setAudioFile");
+}
+
+
+void buttonNoAudio(int theValue) {
+  messageBox.hide();
+  _weHaveAudio = false;
+  encodeVideo();
+}
+
+
+void setAudioFile(File selection) {
+  _audioFile = selection;
+  _weHaveAudio = true;
+  encodeVideo();
+}
+
+void encodeVideo() {
+  // Construct the arguments for FFMPEG:
+  int nArgs = 5;
+  if (_weHaveAudio) {
+    nArgs++;
+  }
+  String[] ffmpegCall = new String[nArgs];
+  ffmpegCall[0] = "\"" + _pathToFFMPEG + "\"";
+  
+  
+  String[] parts = new String[3];
+  parts[0] = _CWD + "Image Files";
+  parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
+  parts[2] = createFilename (_groupName, 9999);
+  parts[2] = parts[2].replaceAll("9999","%4d");
+  String filename = "\"" + join (parts,File.separator) + "\"";
+  
+  ffmpegCall[1] = " -i " + filename;
+  
+  if (_weHaveAudio) {
+    ffmpegCall[2] = " -i " + "\"" + _audioFile.getPath() + "\"";
+  } else {
+    ffmpegCall[2] = "";
+  }
+  
+  float totalTime = _numberOfFrames / float(FRAMERATE);
+  
+  ffmpegCall[3] = "-r " + nf(FRAMERATE); // Set the frame rate
+  ffmpegCall[4] = "-t " + nfs(totalTime,0,3); // Set the duration so that the music gets cut off if it's too long
+  
+  ffmpegCall[5] = "\"" + parts[0] + File.separator + parts[1] + File.separator + "FinishedMovie.mp4\"";
+  println ("Call to ffmpeg: " + join (ffmpegCall," "));
+  exec (join(ffmpegCall," "));
+}
+
 
 
 void draw() {

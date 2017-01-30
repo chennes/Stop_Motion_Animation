@@ -45,6 +45,9 @@ Temporary Items
 # Directories created when exporting EXE files:
 application.windows64
 application.windows32
+application.linux32
+application.linux64
+application.linux-armv6hf
 
 # Directory created when running
 Image Files
