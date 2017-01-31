@@ -631,7 +631,7 @@ void setAudioFile(File selection) {
 
 void encodeVideo() {
   // Construct the arguments for FFMPEG:
-  String[] ffmpegCall = new String[8];
+  String[] ffmpegCall = new String[9];
   ffmpegCall[0] = "\"" + _pathToFFMPEG + "\"";
   
   String[] parts = new String[3];
@@ -641,22 +641,23 @@ void encodeVideo() {
   parts[2] = parts[2].replaceAll("9999","%4d");
   String filename = "\"" + join (parts,File.separator) + "\"";
   
-  ffmpegCall[1] = " -i " + filename;
+  ffmpegCall[1] = " -r " + nf(FRAMERATE); // Set the input frame rate
+  ffmpegCall[2] = " -i " + filename;
   
   if (_weHaveAudio) {
-    ffmpegCall[2] = " -i " + "\"" + _audioFile.getPath() + "\"";
+    ffmpegCall[3] = " -i " + "\"" + _audioFile.getPath() + "\"";
   } else {
-    ffmpegCall[2] = "";
+    ffmpegCall[3] = "";
   }
   
   float totalTime = _numberOfFrames / float(FRAMERATE);
   
-  ffmpegCall[3] = "-r " + nf(FRAMERATE); // Set the frame rate
-  ffmpegCall[4] = "-t " + nfs(totalTime,0,3); // Set the duration so that the music gets cut off if it's too long
-  ffmpegCall[5] = "-nostdin"; // Don't ever ask for input, just do whatever the default is
-  ffmpegCall[6] = "-pix_fmt yuv420p"; // Use the older format to be compatible with Windows Media Player (still needed as of 2017)
+  ffmpegCall[4] = "-r " + nf(FRAMERATE); // Set the output frame rate
+  ffmpegCall[5] = "-t " + nfs(totalTime,0,3); // Set the duration so that the music gets cut off if it's too long
+  ffmpegCall[6] = "-nostdin"; // Don't ever ask for input, just do whatever the default is
+  ffmpegCall[7] = "-pix_fmt yuv420p"; // Use the older format to be compatible with Windows Media Player (still needed as of 2017)
   
-  ffmpegCall[7] = "\"" + parts[0] + File.separator + parts[1] + File.separator + "FinishedMovie.mp4\"";
+  ffmpegCall[8] = "\"" + parts[0] + File.separator + parts[1] + File.separator + "FinishedMovie.mp4\"";
   println ("Call to ffmpeg: " + join (ffmpegCall," "));
   
   ProcessBuilder pb = new ProcessBuilder (join(ffmpegCall," "));
@@ -676,7 +677,7 @@ void encodeVideo() {
       }
     }
     infoLabel.setValue ("Done encoding.");
-    launch (ffmpegCall[7]);
+    launch (ffmpegCall[8]);
     pauseUpdates(2000);
   } catch (Exception e) {
     infoLabel.setValue ("ERROR!\nMovie failed.");
