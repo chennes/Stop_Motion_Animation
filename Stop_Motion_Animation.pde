@@ -633,15 +633,10 @@ void setAudioFile(File selection) {
 
 void encodeVideo() {
   // Construct the arguments for FFMPEG:
-  int nArgs = 5;
-  if (_weHaveAudio) {
-    nArgs++;
-  }
-  String[] ffmpegCall = new String[nArgs];
+  String[] ffmpegCall = new String[8];
   ffmpegCall[0] = "\"" + _pathToFFMPEG + "\"";
   
-  
-  String[] parts = new String[7];
+  String[] parts = new String[3];
   parts[0] = _CWD + "Image Files";
   parts[1] = _groupName.replaceAll("[^a-zA-Z0-9\\-_]", "");
   parts[2] = createFilename (_groupName, 9999);
@@ -660,9 +655,10 @@ void encodeVideo() {
   
   ffmpegCall[3] = "-r " + nf(FRAMERATE); // Set the frame rate
   ffmpegCall[4] = "-t " + nfs(totalTime,0,3); // Set the duration so that the music gets cut off if it's too long
-  ffmpegCall[5] = "-nostdin";
+  ffmpegCall[5] = "-nostdin"; // Don't ever ask for input, just do whatever the default is
+  ffmpegCall[6] = "-pix_fmt yuv420p"; // Use the older format to be compatible with Windows Media Player (still needed as of 2017)
   
-  ffmpegCall[6] = "\"" + parts[0] + File.separator + parts[1] + File.separator + "FinishedMovie.mp4\"";
+  ffmpegCall[7] = "\"" + parts[0] + File.separator + parts[1] + File.separator + "FinishedMovie.mp4\"";
   println ("Call to ffmpeg: " + join (ffmpegCall," "));
   
   ProcessBuilder pb = new ProcessBuilder (join(ffmpegCall," "));
@@ -682,7 +678,7 @@ void encodeVideo() {
       }
     }
     infoLabel.setValue ("Done encoding.");
-    launch (ffmpegCall[6]);
+    launch (ffmpegCall[7]);
     pauseUpdates(2000);
   } catch (Exception e) {
     infoLabel.setValue ("ERROR!\nMovie failed.");
