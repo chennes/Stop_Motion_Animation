@@ -379,8 +379,6 @@ public void takePhoto ()
 {
   _weAreInReplay = false;
   _weAreLive = true;
-  int badCounter = 0;
-  int MAX_BAD_FRAMES_BEFORE_GIVING_UP = 100;
   boolean success = false;
 
   if (_liveFrame != null) {
@@ -485,16 +483,12 @@ void loadPreviousFromFile (File selection)
     // We have to figure out the sequence:
     String[] parts = filename.split ("[_.]");
     _groupName = parts[0];
-    int selectedFrameNumber = Integer.parseInt(parts[1].substring(5));
-    String extension = parts[2];
     
     folderNameLabel.setText (_groupName);
     
     // Now actually load up the old photos:
     int loadingPhotoNumber = 1;
     boolean lastLoadWasSuccessful = true;
-    int failCount = 0;
-    int MAX_FAILS_BEFORE_STOP = 100;
     while (lastLoadWasSuccessful) {
       lastLoadWasSuccessful = LoadFrame (loadingPhotoNumber);
       if (lastLoadWasSuccessful == true) {
@@ -509,8 +503,6 @@ void loadPreviousFromFile (File selection)
         String msg = join (msgArray, "");
         infoLabel.setValue (msg);
         
-      } else {
-        failCount++;
       }
       loadingPhotoNumber++;
     }
@@ -591,7 +583,9 @@ void askForAudio() {
   Textlabel l = cp5.addTextlabel("messageBoxLabel","Do you have a soundtrack for your movie?",20,20);
   l.moveTo(messageBox);
   
-  Button b1 = cp5.addButton("buttonYesAudio",0,65,80,80,24);
+  Button b1 = cp5.addButton("buttonYesAudio")
+    .setPosition(65,80)
+    .setSize(80,24);
   b1.moveTo(messageBox);
   b1.setColorBackground(color(40));
   b1.setColorActive(color(20));
@@ -600,7 +594,9 @@ void askForAudio() {
   b1.setBroadcast(true);
   b1.setCaptionLabel("Yes");
   
-  Button b2 = cp5.addButton("buttonNoAudio",0,155,80,80,24);
+  Button b2 = cp5.addButton("buttonNoAudio")
+    .setPosition(155,80)
+    .setSize(80,24);
   b2.moveTo(messageBox);
   b2.setColorBackground(color(40));
   b2.setColorActive(color(20));
@@ -613,12 +609,14 @@ void askForAudio() {
 // function buttonOK will be triggered when pressing
 // the OK button of the messageBox.
 void buttonYesAudio(int theValue) {
+  println (theValue); // Shut up the compiler
   messageBox.hide();
   selectInput("Choose a file to use as your soundtrack", "setAudioFile");
 }
 
 
 void buttonNoAudio(int theValue) {
+  println(theValue); // Shut up the compiler
   messageBox.hide();
   _weHaveAudio = false;
   encodeVideo();
