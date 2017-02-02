@@ -16,6 +16,7 @@ RUNNING:
 5) Repeat 4 and 5 until you've got some frames
 6) Click ">>>PLAY>>>" to see the movie.
 
+
 TIPS:
 * Holding down the z key will cause the last frame taken to be displayed. This can help when
   lining up the next shot.
@@ -51,6 +52,8 @@ mode is active, we are just showing a single pre-recorded frame.
 
 import processing.video.*;
 import controlP5.*;
+import ddf.minim.*; // Sound processing (as of January 2017 the Sound library from Processing doesn't work properly)
+import ddf.minim.ugens.*;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,14 +73,29 @@ PImage _loadedFrame;
 PImage _liveFrame;
 boolean _weAreLive = true;
 boolean _weAreInReplay = false;
+boolean _weAreGettingAudio = false;
 boolean _weAreWaiting = false;
 int _currentFrame = 0;
 int _waitTime = 0;
 
 // For actually encoding the movie...
 boolean _weHaveAudio = false;
-File _audioFile;
+Minim _minim;
+AudioPlayer _audioPlayer;
+MultiChannelBuffer _audioBuffer;
+float _audioSampleRate;
+File _soundFile;
+float _soundStart;
 Process _ffmpegProcess;
+AudioWaveformVisualizer _awv;
+AudioOutput _audioOutput;
+Sampler _audioSampler;
+boolean _playingSound;
+boolean _playingSelectionOnly;
+
+// For the audio selection user interface:
+Button buttonPlayAll;
+Button buttonPlaySelection;
 
 // GUI Constants
 int BUTTON_WIDTH = 150;
@@ -105,10 +123,13 @@ Textlabel numFramesLabel;
 Textlabel infoLabel;
 Slider frameSlider;
 ControlGroup messageBox;
+ControlGroup _setSoundPositionUI;
 
 void settings () {
   size (WINDOW_WIDTH, WINDOW_HEIGHT); // MUST be the first line in setup (according to the Processing documentation)
-  
+  _minim = new Minim(this);
+  _audioBuffer = new MultiChannelBuffer( 1, 1024 ); // Parameters don't really matter here
+  _playingSound = false;
   // Figure out the path to FFMPEG
   String os = System.getProperty("os.name");
   boolean isWindows = (match(os,"Windows") != null);
@@ -131,6 +152,192 @@ void setup () {
   startNewMovie ();
 }
 
+
+
+class AudioWaveformVisualizer extends controlP5.Controller< AudioWaveformVisualizer > {
+
+  protected int _w, _h;
+  protected int _selectionStart, _selectionWidth;
+  protected int _playhead;
+  protected MultiChannelBuffer _buffer;
+  protected float _audioSampleRate;
+  protected float[] _audioNavigationBuffer;
+  protected boolean _draggingWindow;
+  protected int _dragStart;
+  
+  public AudioWaveformVisualizer (ControlP5 theControlP5, java.lang.String theName, MultiChannelBuffer audioBuffer, float sampleRate)
+  {
+    super (theControlP5, theName);
+    _w = width;
+    _h = height;
+    _selectionStart = 0;
+    _selectionWidth = 0;
+    _playhead = 0;
+    super.setSize(_w, _h);
+    _buffer = audioBuffer;
+    _audioSampleRate = sampleRate;
+    createAudioNavigationBuffer ();
+    _draggingWindow = false;
+    _myControllerView = new AudioWaveformVisualizerView( );
+  }
+  
+  protected void createAudioNavigationBuffer () {
+    int navBufferWidth = _w;
+    int navBufferWindow = _audioBuffer.getBufferSize()/navBufferWidth;
+    _audioNavigationBuffer = new float[navBufferWidth];
+    for (int i = 0; i < navBufferWidth; i++) {
+      // For each window calculate the maximum wave value:
+      _audioNavigationBuffer[i] = max(subset(_audioBuffer.getChannel(0),i*navBufferWindow, navBufferWindow));
+    }
+  }
+  
+  @Override protected void onEnter( ) {
+    isActive = true;
+  }
+
+  @Override protected void onLeave( ) {
+    isActive = false;
+    setIsInside( false );
+  }
+
+  /**
+   * @exclude
+   */
+  @Override public void mousePressed( ) {
+    // See if the mouse is inside the selection window:
+    float xPos = mouseX - ( _myParent.getAbsolutePosition( )[0] + position[0] );
+    if (_selectionStart >= _selectionStart && xPos < _selectionStart+_selectionWidth) {
+      _draggingWindow = true;
+      _dragStart = int(xPos);
+    } else {
+      _draggingWindow = false;
+    }
+  }
+
+  /**
+   * @exclude
+   */
+  @Override public void mouseReleased( ) {
+    float xPos = mouseX - ( _myParent.getAbsolutePosition( )[0] + position[0] );
+    if (!_draggingWindow) {
+      _playhead = int(xPos);
+    } else {
+      int distanceDragged = int(xPos) - _dragStart;
+      _selectionStart += distanceDragged;
+      // Clamp it so it never runs off the end.
+      if (_selectionStart + _selectionWidth > _w) {
+        _selectionStart = _w - _selectionWidth - 1;
+      } else if (_selectionStart < 0) {
+        _selectionStart = 0;
+      }
+    }
+    _draggingWindow = false;
+  }
+  
+  @Override public AudioWaveformVisualizer setSize(int theWidth, int theHeight) 
+  {
+    if (theWidth != _w) {
+      _w = theWidth;
+      createAudioNavigationBuffer();
+    }
+    _h = theHeight;
+    return super.setSize (theWidth, theHeight);
+  }
+  
+  public void setSelectionWindow (float startTime, float audioLength) {
+    float totalLength = _audioBuffer.getBufferSize() / _audioSampleRate;
+    _selectionStart = int(map(startTime, 0, totalLength, 0, _w));
+    _selectionWidth = int(map(audioLength, 0, totalLength, 0, _w));
+  }
+  
+  public float getSelectionStart () {
+    float percentage = float(_selectionStart) / float(_w);
+    float sampleLength = _buffer.getBufferSize() / _audioSampleRate;
+    return percentage*sampleLength;
+  }
+  
+  public void setPlayheadPosition (float t)
+  {
+    float totalLength = _buffer.getBufferSize() / _audioSampleRate;
+    _playhead = int(map(t, 0, totalLength, 0, _w));
+  }
+  
+  public float getPlayheadPosition ()
+  {
+    float percentage = float(_playhead) / float(_w);
+    float sampleLength = _buffer.getBufferSize() / _audioSampleRate;
+    return percentage*sampleLength;
+  }
+  
+  public void setBuffer (MultiChannelBuffer audioBuffer)
+  {
+    _buffer = audioBuffer;
+  }
+  
+  
+  private class AudioWaveformVisualizerView implements ControllerView< AudioWaveformVisualizer > {
+    public void display( PGraphics p , AudioWaveformVisualizer theController ) {
+      p.fill(100);
+      p.rect(0, 0, _w, _h);
+      
+      p.stroke(255,0,0);
+      p.strokeWeight(1);
+      
+      // Get the mouse position in case we need it
+      float xPos = mouseX - ( _myParent.getAbsolutePosition( )[0] + position[0] );
+      
+      for(int i = 0; i < _w; i++)
+      {
+        int x1 = i;
+        int x2 = i;
+        int y1 = _h;
+        int y2 = _h-int(_audioNavigationBuffer[i]*_h);
+        p.line(x1, y1, x2, y2);
+      }
+      
+      if (!_draggingWindow) {
+        // Draw the selection window
+        if (isActive && xPos >= _selectionStart && xPos <= _selectionStart+_selectionWidth ) {
+          p.fill(255,255,255,100);
+        } else {
+          p.fill(255,255,255,60);
+          
+          if (isActive) {
+            // Draw the playhead repositioning cursor
+            p.stroke(0,0,255);
+            p.strokeWeight(1);
+            p.line (xPos, 0, xPos, _h);
+          }
+          
+        }          
+        p.stroke(255,255,255);
+        p.strokeWeight(1);
+        p.rect (_selectionStart, 0, _selectionWidth,_h);
+      
+        // Draw the playhead
+        p.stroke(0,255,0);
+        p.strokeWeight(1);
+        p.line (_playhead, 0, _playhead, _h);
+      
+      
+      } else {
+        int distanceDragged = int(xPos) - _dragStart;
+        int tempSelectionStart = _selectionStart + distanceDragged;
+        // Clamp it so it never runs off the end.
+        if (tempSelectionStart + _selectionWidth >= _w) {
+          tempSelectionStart = _w - _selectionWidth - 1;
+        } else if (tempSelectionStart < 0) {
+          tempSelectionStart = 0;
+        }
+        p.stroke(255,255,255);
+        p.strokeWeight(1);
+        p.fill(255,255,255,140);
+        p.rect (tempSelectionStart, 0, _selectionWidth,_h);
+      }
+      
+    }
+  }
+}
 
 
 
@@ -217,7 +424,11 @@ void setupUserInterface () {
   // This makes the spacebar activate the takePhoto() function...
   cp5.mapKeyFor(new ControlKey() {
     public void keyEvent() {
-        takePhoto();
+        if (_weAreGettingAudio) {
+          buttonPlayAll(0);
+        } else {
+          takePhoto();
+        }
     }
   }, ' ');
   
@@ -624,9 +835,135 @@ void buttonNoAudio(int theValue) {
 
 
 void setAudioFile(File selection) {
-  _audioFile = selection;
+  noLoop();
+  _weAreLive = false;
+  _weAreInReplay = false;
+  _weAreWaiting = false;
+  _weAreGettingAudio = true;
+  infoLabel.setValue ("Loading audio,\nplease wait...");
+  redraw();
+  
+  _soundFile = selection;
+  _audioPlayer = _minim.loadFile(_soundFile.getPath());
+  _audioSampleRate = _minim.loadFileIntoBuffer(_soundFile.getPath(),_audioBuffer);
+  _soundStart = 0.0;
   _weHaveAudio = true;
+  setSoundPosition(_audioSampleRate);
+  loop();
+}
+
+void setSoundPosition (float sampleRate)
+{
+  _setSoundPositionUI = cp5.addGroup("soundPosition",0,0,width);
+  _setSoundPositionUI.setBackgroundHeight(height);
+  _setSoundPositionUI.setBackgroundColor(color(0,0.9));
+  _setSoundPositionUI.hideBar();
+  Textlabel l = cp5.addTextlabel("soundPositionLabel","Set audio range",STANDARD_SPACING,STANDARD_SPACING);
+  l.moveTo(_setSoundPositionUI);
+  
+  buttonPlayAll = cp5.addButton("buttonPlayAll")
+    .setPosition(STANDARD_SPACING,height-BUTTON_HEIGHT-STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT);
+  buttonPlayAll.moveTo(_setSoundPositionUI);
+  buttonPlayAll.setColorBackground(color(40));
+  buttonPlayAll.setColorActive(color(20));
+  buttonPlayAll.setBroadcast(false); 
+  buttonPlayAll.setValue(1);
+  buttonPlayAll.setBroadcast(true);
+  buttonPlayAll.setCaptionLabel("Play all");
+  
+  buttonPlaySelection = cp5.addButton("buttonPlaySelection")
+    .setPosition(2*STANDARD_SPACING + BUTTON_WIDTH,height-BUTTON_HEIGHT-STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH,BUTTON_HEIGHT);
+  buttonPlaySelection.moveTo(_setSoundPositionUI);
+  buttonPlaySelection.setColorBackground(color(40));
+  buttonPlaySelection.setColorActive(color(20));
+  buttonPlaySelection.setBroadcast(false); 
+  buttonPlaySelection.setValue(1);
+  buttonPlaySelection.setBroadcast(true);
+  buttonPlaySelection.setCaptionLabel("Play selection");
+  
+  Button b2 = cp5.addButton("buttonSave")
+    .setPosition(width-2*(BUTTON_WIDTH/2+STANDARD_SPACING),height-BUTTON_HEIGHT-STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH/2,BUTTON_HEIGHT);
+  b2.moveTo(_setSoundPositionUI);
+  b2.setColorBackground(color(40));
+  b2.setColorActive(color(20));
+  b2.setBroadcast(false);
+  b2.setValue(2);
+  b2.setBroadcast(true);
+  b2.setCaptionLabel("Save");
+  
+  Button b3 = cp5.addButton("buttonCancel")
+    .setPosition(width-1*(BUTTON_WIDTH/2+STANDARD_SPACING),height-BUTTON_HEIGHT-STANDARD_SPACING)
+    .setSize(BUTTON_WIDTH/2,BUTTON_HEIGHT);
+  b3.moveTo(_setSoundPositionUI);
+  b3.setColorBackground(color(40));
+  b3.setColorActive(color(20));
+  b3.setBroadcast(false);
+  b3.setValue(0);
+  b3.setBroadcast(true);
+  b3.setCaptionLabel("Cancel");
+  
+  // Now we just draw our audio waveform and set up the interaction with it
+  _awv = new AudioWaveformVisualizer(cp5, "awv", _audioBuffer, sampleRate);
+  _awv.setSize(width-2*STANDARD_SPACING, height - 2*(2*STANDARD_SPACING+BUTTON_HEIGHT));
+  _awv.setPosition(STANDARD_SPACING, BUTTON_HEIGHT+2*STANDARD_SPACING);
+  float totalTime = _numberOfFrames / float(FRAMERATE);
+  _awv.setSelectionWindow (0,totalTime);
+  _awv.setPlayheadPosition (_soundStart);
+  _awv.moveTo(_setSoundPositionUI);
+}
+
+void buttonPlayAll (int theValue) {
+  if (_playingSound) {
+    _playingSound = false;
+    //b1.setCaptionLabel("Play all");
+    _audioPlayer.pause();
+    float playhead = _audioPlayer.position() / 1000.0;
+    _awv.setPlayheadPosition(playhead);
+    buttonPlaySelection.show();
+    buttonPlayAll.setCaptionLabel("Play selection");
+  } else {
+    _playingSound = true;
+    buttonPlaySelection.hide();
+    buttonPlayAll.setCaptionLabel("Pause");
+    _playingSelectionOnly = false;
+    //b1.setCaptionLabel("Stop playing");
+    float startTime = _awv.getPlayheadPosition();
+    _audioPlayer.cue (int(startTime * 1000));
+    _audioPlayer.loop();
+  }
+}
+
+void buttonPlaySelection (int theValue) {
+  if (_playingSound) {
+    _playingSound = false;
+    _audioPlayer.pause();
+    buttonPlayAll.show();
+    buttonPlaySelection.setCaptionLabel("Play all");
+  } else {
+    buttonPlayAll.hide();
+    buttonPlaySelection.setCaptionLabel("Pause");
+    _playingSound = true;
+    _playingSelectionOnly = true;
+    float playhead = _awv.getPlayheadPosition();
+    float selectionStart = _awv.getSelectionStart();
+    if (playhead < selectionStart || playhead > selectionStart + float(_numberOfFrames)/15.0) {
+      playhead = selectionStart;
+      _audioPlayer.cue (int(playhead * 1000));
+    }
+    _audioPlayer.loop();
+  }
+}
+
+void buttonSave (int theValue) {
+  _setSoundPositionUI.hide();
   encodeVideo();
+}
+
+void buttonCancel (int theValue) {
+  _setSoundPositionUI.hide();
 }
 
 void encodeVideo() {
@@ -645,7 +982,8 @@ void encodeVideo() {
   ffmpegCall[2] = " -i " + filename;
   
   if (_weHaveAudio) {
-    ffmpegCall[3] = " -i " + "\"" + _audioFile.getPath() + "\"";
+    float selectionStart = _awv.getSelectionStart();
+    ffmpegCall[3] = " -ss " + nfs(selectionStart,0,3) + " -i " + "\"" + _soundFile.getPath() + "\"";
   } else {
     ffmpegCall[3] = "";
   }
@@ -732,6 +1070,17 @@ void draw() {
       frameSlider.setValue (_currentFrame);
       frameRate (30);
     }
+  } else if (_playingSound) {
+    float selectionStart = _awv.getSelectionStart();
+    float playhead;
+    playhead = _audioPlayer.position() / 1000.0;
+    if (_playingSelectionOnly) {
+      if (playhead < selectionStart || playhead > selectionStart + float(_numberOfFrames)/15.0) {
+        playhead = selectionStart;
+        _audioPlayer.cue (int(playhead * 1000));
+      }
+    }
+    _awv.setPlayheadPosition(playhead);
   } else if (_weAreWaiting) {
     // Do not update the info string here!
   } else {
