@@ -1,12 +1,8 @@
 # Stop_Motion_Animation
-A simple Processing-based stop-motion animation frame grabber
+A C++ and Qt based stop-motion animation app.
 
-This small program uses the Processing (http://processing.org) programming environment to display a simple stop-motion animation
-frame-grabbing utility. It is designed to have only the options absolutely required for simple stop-motion
-animation, and is suitable for ages 6 and up. Frames are stored as TIFF files in the directory with the
-program. When you are done taking frames there is a simple encoding option that allows you to add a single audio 
-file as background music and create a file suitable for sharing or uploading to social media.
+This program provides a simplified stop-motion animation program suitable for ages 8 and up. It is designed specifically to minimize the number of options and reduce interface clutter so that kids can focus on creating their movie, and not on fighting with the user interface. It provides encoding via the FFmpeg program (included, or available at https://ffmpeg.org/ffmpeg.html). Background music and sound effects can be added directly from the interface, so for most classroom uses it functions as a stand-alone stop motion solution.
 
-The program was written by Chris Hennes, Computer Training Center Assistant at Norman Public Library, a branch
+The program was written by Chris Hennes, Computer Training Center Assistant at Norman Central Public Library, a branch
 of the Pioneer Library System in central Oklahoma, USA. It was designed for use in the library's stop-motion
 programs. 
