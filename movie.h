@@ -26,15 +26,15 @@ public:
 
     void addFrame (QCamera *camera);
 
-    unsigned int getNumberOfFrames () const;
+    int getNumberOfFrames () const;
 
     void deleteLastFrame ();
 
-    void setStillFrame (unsigned int frameNumber, QLabel *video);
+    void setStillFrame (int frameNumber, QLabel *video);
 
-    void setFramesPerSecond (unsigned int fps);
+    void setFramesPerSecond (int fps);
 
-    unsigned int getFramesPerSecond () const;
+    int getFramesPerSecond () const;
 
     void setResolution (int w, int h);
 
@@ -46,17 +46,23 @@ public:
 
     QList<QByteArray> getSupportedFormats () const;
 
-    void play (unsigned int startFrame, QLabel *video);
+    void play (int startFrame, QLabel *video);
 
     void stop ();
 
-    void addBackgroundMusic (std::shared_ptr<SoundEffect> backgroundMusic);
+    void addBackgroundMusic (const SoundEffect &backgroundMusic);
 
-    void addSoundEffect (std::shared_ptr<SoundEffect> soundEffect);
+    SoundEffect getBackgroundMusic () const;
+
+    void addSoundEffect (const SoundEffect &soundEffect);
+
+    QList<SoundEffect> getSoundEffects () const;
 
     void removeBackgroundMusic();
 
-    void removeSoundEffect (std::shared_ptr<SoundEffect> soundEffect);
+    void removeSoundEffect (const SoundEffect &soundEffect);
+
+    void removeAllSoundEffects ();
 
     /**
      * @brief Serialize the local data from this object
@@ -66,13 +72,13 @@ public:
     /**
      * @brief Unserialize the local data from this object
      */
-    void load ();
+    bool load(const QString &filename);
 
     void encodeToFile (const QString &filename) const;
 
 signals:
 
-    void frameChanged (unsigned int newFrame);
+    void frameChanged (int newFrame);
 
 
 protected slots:
@@ -85,17 +91,17 @@ protected:
 
     QString getSaveFilename () const;
 
-    QString getImageFilename (unsigned int frame) const;
+    QString getImageFilename (int frame) const;
 
 private:
 
-    static const unsigned int DEFAULT_FPS;
+    static const int DEFAULT_FPS;
 
     QString _name;
-    unsigned int _numberOfFrames;
-    unsigned int _framesPerSecond;
-    std::vector<std::shared_ptr<SoundEffect>> _soundEffects;
-    std::shared_ptr<SoundEffect> _backgroundMusic;
+    qint32 _numberOfFrames;
+    qint32 _framesPerSecond;
+    QList<SoundEffect> _soundEffects;
+    SoundEffect _backgroundMusic;
 
     QCamera *_camera;
     QImageEncoderSettings _encoderSettings;
@@ -103,7 +109,7 @@ private:
 
     // For playback
     bool _currentlyPlaying;
-    unsigned int _currentFrame;
+    qint32 _currentFrame;
     QTimer _playbackTimer;
     QLabel *_frameDestination;
 
@@ -118,6 +124,17 @@ public:
         QString message() const {return _message;}
     private:
         QString _message;
+    };
+
+    class FailedToSaveException : public QException
+    {
+    public:
+        FailedToSaveException(QString filename = "") {_filename = filename;}
+        void raise() const { throw *this; }
+        FailedToSaveException *clone() const {return new FailedToSaveException(*this); }
+        QString filename() const {return _filename;}
+    private:
+        QString _filename;
     };
 
 };

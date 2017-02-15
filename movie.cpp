@@ -2,6 +2,9 @@
 
 #include <QDir>
 #include <QImageWriter>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <iomanip>
 #include <thread>
 #include <fstream>
@@ -9,7 +12,7 @@
 
 #include <iostream>
 
-const unsigned int Movie::DEFAULT_FPS (15);
+const qint32 Movie::DEFAULT_FPS (15);
 
 Movie::Movie(const QString &name) :
     _name (name),
@@ -44,7 +47,7 @@ void Movie::addFrame (QCamera *camera)
     _numberOfFrames++;
 }
 
-unsigned int Movie::getNumberOfFrames () const
+qint32 Movie::getNumberOfFrames () const
 {
     return _numberOfFrames;
 }
@@ -58,7 +61,7 @@ void Movie::deleteLastFrame ()
     }
 }
 
-void Movie::setStillFrame (unsigned int frameNumber, QLabel *video)
+void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
 {
     if (_currentFrame != frameNumber && frameNumber < _numberOfFrames) {
         _currentFrame = frameNumber;
@@ -69,12 +72,12 @@ void Movie::setStillFrame (unsigned int frameNumber, QLabel *video)
 }
 
 
-void Movie::setFramesPerSecond (unsigned int fps)
+void Movie::setFramesPerSecond (qint32 fps)
 {
     _framesPerSecond = fps;
 }
 
-unsigned int Movie::getFramesPerSecond () const
+qint32 Movie::getFramesPerSecond () const
 {
     return _framesPerSecond;
 }
@@ -112,7 +115,7 @@ QList<QByteArray> Movie::getSupportedFormats () const
     return QImageWriter::supportedImageFormats();
 }
 
-void Movie::play (unsigned int startFrame, QLabel *video)
+void Movie::play (qint32 startFrame, QLabel *video)
 {
     if (startFrame >= _numberOfFrames) {
         startFrame = 0;
@@ -128,7 +131,7 @@ void Movie::play (unsigned int startFrame, QLabel *video)
 void Movie::nextFrame ()
 {
     if (_currentlyPlaying && _frameDestination) {
-        unsigned int targetFrame = _currentFrame + 1;
+        qint32 targetFrame = _currentFrame + 1;
         if (targetFrame >= _numberOfFrames) {
             targetFrame = 0;
         }
@@ -142,22 +145,22 @@ void Movie::stop ()
     _playbackTimer.stop();
 }
 
-void Movie::addBackgroundMusic (std::shared_ptr<SoundEffect> backgroundMusic)
+void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
 {
     _backgroundMusic = backgroundMusic;
 }
 
-void Movie::addSoundEffect (std::shared_ptr<SoundEffect> soundEffect)
+void Movie::addSoundEffect (const SoundEffect &soundEffect)
 {
     _soundEffects.push_back(soundEffect);
 }
 
 void Movie::removeBackgroundMusic()
 {
-    _backgroundMusic = std::shared_ptr<SoundEffect>();
+    _backgroundMusic = SoundEffect();
 }
 
-void Movie::removeSoundEffect (std::shared_ptr<SoundEffect> soundEffect)
+void Movie::removeSoundEffect (const SoundEffect &soundEffect)
 {
     auto itr = std::find(_soundEffects.begin(), _soundEffects.end(), soundEffect);
     if (itr != _soundEffects.end()) {
@@ -168,54 +171,63 @@ void Movie::removeSoundEffect (std::shared_ptr<SoundEffect> soundEffect)
 
 void Movie::save () const
 {
-    auto filename = getSaveFilename ();
-    std::ofstream s (filename.toStdString());
-    if (s.good()) {
-        s << _name.toStdString() << "\n"
-          << _numberOfFrames << "\n"
-          << _framesPerSecond << "\n"
-          << _soundEffects.size() << "\n";
-        for (auto effect : _soundEffects) {
-            s << effect;
+    if (_numberOfFrames > 0) {
+        auto filename = getSaveFilename ();
+        QFile saveFile (filename);
+        bool isOpen = saveFile.open(QIODevice::WriteOnly);
+        if (!isOpen) {
+            throw Movie::FailedToSaveException(filename);
         }
-        s << _backgroundMusic;
+        QJsonObject json;
+        json["name"] = _name;
+        json["numberOfFrames"] = _numberOfFrames;
+        json["framesPerSecond"] = _framesPerSecond;
+
+        QJsonArray sfxArray;
+        foreach (const SoundEffect sfx, _soundEffects) {
+            QJsonObject sfxObject;
+            sfx.save (sfxObject);
+            sfxArray.append(sfxObject);
+        }
+        json["sfx"] = sfxArray;
+
+        QJsonObject backgroundObject;
+        _backgroundMusic.save (backgroundObject);
+
+        json["backgroundMusic"] = backgroundObject;
+
+        QJsonDocument jsonDocument (json);
+        saveFile.write(jsonDocument.toJson());
+        saveFile.close();
     }
 }
 
-void Movie::load ()
+bool Movie::load (const QString &filename)
 {
-    auto filename = getSaveFilename ();
-    std::ifstream s (filename.toStdString());
-    if (s.good()) {
-        QString nameFromFile;
-        s >> nameFromFile.toStdString();
-        if (_name != nameFromFile) {
-            // Is this really the correct object to load?
-            // throw an exception here
-        }
-        int nFrames, fps;
-        s >> nFrames;
-        s >> fps;
+    QFile loadFile (filename);
 
-        if (nFrames >= 0) {
-            _numberOfFrames = (unsigned int) nFrames;
-        }
-        if (fps >= 1) {
-            _framesPerSecond = (unsigned int) fps;
-        }
-
-        int numberOfSoundEffects;
-        s >> numberOfSoundEffects;
-        if (numberOfSoundEffects > 0) {
-            _soundEffects.resize(numberOfSoundEffects);
-            for (auto&& effect : _soundEffects ) {
-                effect = std::shared_ptr<SoundEffect> (new SoundEffect(""));
-                s >> *effect;
-            }
-        }
-        _backgroundMusic = std::shared_ptr<SoundEffect> (new SoundEffect(""));
-        s >> *_backgroundMusic;
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        return false;
     }
+
+    QByteArray saveData = loadFile.readAll();
+    QJsonDocument jsonDocument (QJsonDocument::fromJson(saveData));
+    QJsonObject json (jsonDocument.object());
+    _name = json["name"].toString();
+    _numberOfFrames = json["numberOfFrames"].toInt();
+    _framesPerSecond = json["framesPerSecond"].toInt();
+
+    QJsonArray sfxArray = json["sfx"].toArray();
+    _soundEffects.clear();
+    for (int sfxIndex = 0; sfxIndex < sfxArray.size(); ++sfxIndex) {
+        QJsonObject sfxObject (sfxArray[sfxIndex].toObject());
+        SoundEffect sfx;
+        sfx.load (sfxObject);
+        _soundEffects.append(sfx);
+    }
+    QJsonObject backgroundObject (json["backgroundMusic"].toObject());
+    _backgroundMusic.load (backgroundObject);
+    return true;
 }
 
 void Movie::encodeToFile (const QString &filename) const
@@ -240,10 +252,10 @@ QString Movie::getBaseFilename () const
 QString Movie::getSaveFilename () const
 {
     QString base = getBaseFilename();
-    return base + ".txt";
+    return base + ".json";
 }
 
-QString Movie::getImageFilename (unsigned int frame) const
+QString Movie::getImageFilename (qint32 frame) const
 {
     std::stringstream ss;
     ss << getBaseFilename().toStdString() << "_" << std::setfill('0') << std::setw(5) << frame;

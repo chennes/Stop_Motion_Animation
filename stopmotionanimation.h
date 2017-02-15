@@ -2,6 +2,7 @@
 #define STOPMOTIONANIMATION_H
 
 #include <QDialog>
+#include <QErrorMessage>
 #include <QtMultimedia/QCamera>
 #include "movie.h"
 
@@ -54,6 +55,7 @@ protected:
 private:
     QCamera *_camera;
     QCameraViewfinderSettings _viewFinderSettings;
+    QErrorMessage _errorDialog;
     std::unique_ptr<Movie> _movie;
     State _state;
 

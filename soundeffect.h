@@ -9,7 +9,15 @@ class SoundEffect : public QObject
     Q_OBJECT
 
 public:
-    SoundEffect(const std::string &filename);
+    SoundEffect(const QString &filename = "");
+
+    SoundEffect(const SoundEffect &sfx);
+
+    SoundEffect& operator= (const SoundEffect& rhs);
+
+    bool operator== (const SoundEffect& rhs) const;
+
+    bool operator< (const SoundEffect& rhs) const;
 
     void setStartTime (float t);
     void setInPoint (float t);
@@ -35,15 +43,16 @@ public:
 
     void stop () const;
 
-    friend std::ostream& operator<<(std::ostream& os, const SoundEffect& se);
-    friend std::istream& operator>>(std::istream& is, SoundEffect& se);
+    void load(const QJsonObject &json);
+
+    void save (QJsonObject &json) const;
 
 
 private:
-    std::string _filename;
-    float _startTime;
-    float _in;
-    float _out;
+    QString _filename;
+    double _startTime;
+    double _in;
+    double _out;
 
     mutable bool _isPlaying;
     mutable QMediaPlayer _playback;

@@ -1,15 +1,73 @@
 #include "soundeffect.h"
 
 #include <QTimer>
+#include <QJsonObject>
 
-SoundEffect::SoundEffect(const std::string &filename):
+SoundEffect::SoundEffect(const QString &filename):
     _filename (filename),
     _startTime(0.0),
     _in(0.0),
     _isPlaying (false)
 {
-    _playback.setMedia (QUrl::fromLocalFile(QString::fromStdString(filename)));
-    _out = float(_playback.duration()) / 1000.0;
+    if (_filename.length() > 0) {
+        _playback.setMedia (QUrl::fromLocalFile(filename));
+        _out = float(_playback.duration()) / 1000.0;
+    }
+}
+
+
+
+SoundEffect::SoundEffect(const SoundEffect &sfx) :
+    _filename(sfx._filename),
+    _startTime(sfx._startTime),
+    _in(sfx._in),
+    _out(sfx._out),
+    _isPlaying(false)
+{
+    if (_filename.length() > 0) {
+        _playback.setMedia (QUrl::fromLocalFile(_filename));
+    }
+}
+
+
+SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
+{
+    if (this != &rhs) {
+        _filename = rhs._filename;
+        _startTime = rhs._startTime;
+        _in = rhs._in;
+        _out = rhs._out;
+        _isPlaying = false;
+        if (_filename.length() > 0) {
+            _playback.setMedia (QUrl::fromLocalFile(_filename));
+        }
+    }
+    return *this;
+}
+
+bool SoundEffect::operator== (const SoundEffect& rhs) const
+{
+    return (_filename == rhs._filename &&
+            _startTime == rhs._startTime &&
+            _in == rhs._in &&
+            _out == rhs._out);
+}
+
+bool SoundEffect::operator< (const SoundEffect& rhs) const
+{
+    if (_startTime == rhs._startTime) {
+        if (_filename == rhs._filename) {
+            if (_in == rhs._in) {
+                return _out < rhs._out;
+            } else {
+                return _in < rhs._in;
+            }
+        } else {
+            return _filename < rhs._filename;
+        }
+    } else {
+        return _startTime < rhs._startTime;
+    }
 }
 
 
@@ -70,21 +128,23 @@ void SoundEffect::stop () const
     }
 }
 
-
-std::ostream& operator<<(std::ostream& os, const SoundEffect& se)
+void SoundEffect::load (const QJsonObject &json)
 {
-    os << se._filename << "\n"
-       << se._startTime << "\n"
-       << se._in << "\n"
-       << se._out << "\n";
-    return os;
+    _filename = json["filename"].toString();
+    _startTime = json["startTime"].toDouble();
+    _in = json["in"].toDouble();
+    _out = json["out"].toDouble();
+
+    if (_filename.length() > 0) {
+        _playback.setMedia (QUrl::fromLocalFile(_filename));
+        _out = float(_playback.duration()) / 1000.0;
+    }
 }
 
-std::istream& operator>>(std::istream& is, SoundEffect& se)
+void SoundEffect::save (QJsonObject &json) const
 {
-    is >> se._filename
-       >> se._startTime
-       >> se._in
-       >> se._out;
-    return is;
+    json["filename"] = _filename;
+    json["startTime"] = _startTime;
+    json["in"] = _in;
+    json["out"] = _out;
 }

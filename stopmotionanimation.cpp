@@ -4,12 +4,14 @@
 #include <QDateTime>
 #include <QtMultimedia/QCameraInfo>
 #include <QKeyEvent>
+#include <QFileDialog>
 
 #include <iostream>
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::StopMotionAnimation)
+    ui(new Ui::StopMotionAnimation),
+    _camera(NULL)
 {
     ui->setupUi(this);
     _viewFinderSettings.setResolution(640,480);
@@ -87,7 +89,34 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
 
 void StopMotionAnimation::on_addToPreviousButton_clicked()
 {
-    // Launch a dialog to ask for the previous movie
+    QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open Movie File"), "Image Files", tr("Stop-motion movie files (*.json);;All files (*.*)"));
+    bool success = _movie->load(fileName);
+    if (!success) {
+        _errorDialog.showMessage("Could not load the movie file " + fileName);
+    } else {
+        qint32 numberOfFrames = _movie->getNumberOfFrames();
+        ui->movieNameLabel->setText(_movie->getName());
+        ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
+        ui->horizontalSlider->setMaximum(numberOfFrames+1);
+        ui->horizontalSlider->setValue(numberOfFrames+1);
+        if (numberOfFrames > 0) {
+            ui->playButton->setDisabled(false);
+            ui->horizontalSlider->setDisabled(false);
+            ui->deletePhotoButton->setDisabled(false);
+            ui->soundEffectButton->setDisabled(false);
+            ui->backgroundMusicButton->setDisabled(false);
+            ui->createFinalMovieButton->setDisabled(false);
+        } else {
+            ui->playButton->setDisabled(true);
+            ui->horizontalSlider->setDisabled(true);
+            ui->deletePhotoButton->setDisabled(true);
+            ui->soundEffectButton->setDisabled(true);
+            ui->backgroundMusicButton->setDisabled(true);
+            ui->createFinalMovieButton->setDisabled(true);
+        }
+        setState(State::LIVE);
+    }
 }
 
 void StopMotionAnimation::on_createFinalMovieButton_clicked()
