@@ -25,6 +25,22 @@ Movie::Movie(const QString &name) :
     _encoderSettings.setCodec("JPG");
 }
 
+Movie::~Movie ()
+{
+    // If we have no frames, delete anything we have saved, including the
+    // directory we would have used to store those things.
+    if (_numberOfFrames == 0) {
+        QDir d;
+        if (d.exists("Image Files")) {
+            d.cd ("Image Files");
+            if (d.exists(_name)) {
+                d.cd (_name);
+                d.removeRecursively();
+            }
+        }
+    }
+}
+
 void Movie::setName (const QString &name)
 {
     _name = name;
@@ -45,6 +61,20 @@ void Movie::addFrame (QCamera *camera)
     QString filename = getImageFilename (_numberOfFrames);
     _imageCapture->capture (filename);
     _numberOfFrames++;
+}
+
+void Movie::importFrame (const QString &filename)
+{
+    QString newFilename = getImageFilename (_numberOfFrames) + "." + _encoderSettings.codec().toLower();
+    bool success = QFile::copy (filename, newFilename);
+    if (success) {
+        _numberOfFrames++;
+    } else {
+        std::cout << "FAILED: \n"
+                  << filename.toStdString() << "\n"
+                  << newFilename.toStdString() << std::endl;
+        throw ImportFailedException ();
+    }
 }
 
 qint32 Movie::getNumberOfFrames () const
@@ -232,7 +262,7 @@ bool Movie::load (const QString &filename)
 
 void Movie::encodeToFile (const QString &filename) const
 {
-    // Call ffmpeg
+    // Call ffmpeg... or something. Maybe Qt can just encode in-house?
 }
 
 QString Movie::getBaseFilename () const

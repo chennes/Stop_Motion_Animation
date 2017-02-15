@@ -127,7 +127,29 @@ void StopMotionAnimation::on_createFinalMovieButton_clicked()
 
 void StopMotionAnimation::on_importButton_clicked()
 {
-    // Launch a dialog asking for the frames to import
+    QString name = QFileDialog::getExistingDirectory();
+    QDir directory (name, "*.jpg");
+    QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
+    foreach (const QString &filename, fileList) {
+        try {
+            _movie->importFrame(name + "/" + filename);
+            qint32 numberOfFrames = _movie->getNumberOfFrames();
+            ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
+            ui->horizontalSlider->setMaximum(numberOfFrames+1);
+            ui->horizontalSlider->setValue(numberOfFrames+1);
+        } catch (Movie::ImportFailedException &e) {
+            _errorDialog.showMessage("Failed to import the file " + filename);
+            return;
+        }
+    }
+    if (_movie->getNumberOfFrames() > 0) {
+        ui->playButton->setDisabled(false);
+        ui->horizontalSlider->setDisabled(false);
+        ui->deletePhotoButton->setDisabled(false);
+        ui->soundEffectButton->setDisabled(false);
+        ui->backgroundMusicButton->setDisabled(false);
+        ui->createFinalMovieButton->setDisabled(false);
+    }
 }
 
 void StopMotionAnimation::on_settingButton_clicked()

@@ -20,11 +20,15 @@ class Movie : public QObject
 public:
     Movie(const QString &name = "");
 
+    ~Movie ();
+
     void setName (const QString &name);
 
     QString getName () const;
 
     void addFrame (QCamera *camera);
+
+    void Movie::importFrame (const QString &filename);
 
     int getNumberOfFrames () const;
 
@@ -135,6 +139,14 @@ public:
         QString filename() const {return _filename;}
     private:
         QString _filename;
+    };
+
+    class ImportFailedException : public QException
+    {
+    public:
+        ImportFailedException() {}
+        void raise() const { throw *this; }
+        ImportFailedException *clone() const {return new ImportFailedException(*this); }
     };
 
 };
