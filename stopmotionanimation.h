@@ -5,6 +5,8 @@
 #include <QErrorMessage>
 #include <QtMultimedia/QCamera>
 #include "movie.h"
+#include "soundeffect.h"
+#include "helpdialog.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -58,6 +60,8 @@ private:
     QErrorMessage _errorDialog;
     std::unique_ptr<Movie> _movie;
     State _state;
+
+    HelpDialog _help;
 
 
 };

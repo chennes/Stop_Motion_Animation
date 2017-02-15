@@ -26,10 +26,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp\
         stopmotionanimation.cpp \
     movie.cpp \
-    soundeffect.cpp
+    soundeffect.cpp \
+    helpdialog.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
-    soundeffect.h
+    soundeffect.h \
+    helpdialog.h
 
-FORMS    += stopmotionanimation.ui
+FORMS    += stopmotionanimation.ui \
+    helpdialog.ui
+
+RESOURCES += \
+    resources.qrc

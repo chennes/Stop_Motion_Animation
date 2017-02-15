@@ -6,7 +6,6 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 
-#include <iostream>
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QDialog(parent),
@@ -138,7 +137,7 @@ void StopMotionAnimation::on_settingButton_clicked()
 
 void StopMotionAnimation::on_helpButton_clicked()
 {
-    // Launch the Help documentation
+    _help.show();
 }
 
 void StopMotionAnimation::on_takePhotoButton_clicked()
