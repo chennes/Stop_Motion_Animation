@@ -11,6 +11,7 @@
 #include <QtMultimedia/QCameraImageCapture>
 #include <QLabel>
 #include <QTimer>
+#include <QTime>
 
 
 class Movie : public QObject
@@ -35,20 +36,6 @@ public:
     void deleteLastFrame ();
 
     void setStillFrame (int frameNumber, QLabel *video);
-
-    void setFramesPerSecond (int fps);
-
-    int getFramesPerSecond () const;
-
-    void setResolution (int w, int h);
-
-    QSize getResolution () const;
-
-    void setFormat (const QString &extension);
-
-    QString getFormat () const;
-
-    QList<QByteArray> getSupportedFormats () const;
 
     void play (int startFrame, QLabel *video);
 
@@ -116,6 +103,10 @@ private:
     qint32 _currentFrame;
     QTimer _playbackTimer;
     QLabel *_frameDestination;
+    qint32 _playFrameCounter;
+    QTime _playStartTime;
+    QTime _lastFrameTime;
+    qint32 _computerSpeedAdjustment;
 
 public:
 

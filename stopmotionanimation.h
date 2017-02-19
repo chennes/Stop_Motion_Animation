@@ -7,6 +7,7 @@
 #include "movie.h"
 #include "soundeffect.h"
 #include "helpdialog.h"
+#include "settingsdialog.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -62,6 +63,7 @@ private:
     State _state;
 
     HelpDialog _help;
+    SettingsDialog _settings;
 
 
 };

@@ -5,6 +5,7 @@
 #include <QtMultimedia/QCameraInfo>
 #include <QKeyEvent>
 #include <QFileDialog>
+#include <QSettings>
 
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
@@ -13,7 +14,9 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     _camera(NULL)
 {
     ui->setupUi(this);
-    _viewFinderSettings.setResolution(640,480);
+    QSettings settings;
+    QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
+    _viewFinderSettings.setResolution(resolution);
     on_startNewMovieButton_clicked();
     adjustSize();
 }
@@ -33,7 +36,15 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
 {
     // Generate a new timestamp
     QDateTime local(QDateTime::currentDateTime());
-    QString timestamp = local.toString ("yyyy-MM-dd-hh-mm-ss");
+    QSettings settings;
+    QString imageFilenameFormat = settings.value("settings/imageFilenameFormat","yyyy-MM-dd-hh-mm-ss").toString();
+    QString timestamp = local.toString (imageFilenameFormat);
+    if (timestamp.length() == 0) {
+        timestamp = local.toString ("yyyy-MM-dd-hh-mm-ss");
+    }
+    // Make sure it's a valid-ish filename
+    timestamp.replace('/',"-");
+    timestamp.replace('\\',"-");
 
     // Update the label
     ui->movieNameLabel->setText(timestamp);
@@ -59,9 +70,20 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
     _movie = std::unique_ptr<Movie> (new Movie (timestamp));
 
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+    QString requestedCamera = settings.value("settings/camera","Always use default").toString();
 
     if (!cameras.empty()) {
-        _camera = new QCamera(cameras.back());
+
+        _camera = NULL;
+        for (auto camera = cameras.begin(); camera!= cameras.end(); ++camera) {
+            if (camera->description() == requestedCamera) {
+                _camera = new QCamera(*camera);
+                break;
+            }
+        }
+        if (!_camera) {
+            _camera = new QCamera(cameras.back());
+        }
         _camera->setViewfinder (ui->cameraViewfinder);
         _camera->setViewfinderSettings(_viewFinderSettings);
         _camera->setCaptureMode(QCamera::CaptureStillImage);
@@ -128,7 +150,9 @@ void StopMotionAnimation::on_createFinalMovieButton_clicked()
 void StopMotionAnimation::on_importButton_clicked()
 {
     QString name = QFileDialog::getExistingDirectory();
-    QDir directory (name, "*.jpg");
+    QSettings settings;
+    QString imageFileType = settings.value("settings/imageFileType","JPG").toString().toLower();
+    QDir directory (name, "*."+imageFileType);
     QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
     foreach (const QString &filename, fileList) {
         try {
@@ -155,6 +179,13 @@ void StopMotionAnimation::on_importButton_clicked()
 void StopMotionAnimation::on_settingButton_clicked()
 {
     // Launch the settings dialog
+    _settings.load();
+    auto result = _settings.exec();
+    if (result == QDialog::Accepted) {
+        _settings.store();
+
+        // TODO: Now get all those settings and do something with them...
+    }
 }
 
 void StopMotionAnimation::on_helpButton_clicked()

@@ -5,6 +5,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QSettings>
+#include <QImageEncoderControl>
 #include <iomanip>
 #include <thread>
 #include <fstream>
@@ -17,12 +19,23 @@ const qint32 Movie::DEFAULT_FPS (15);
 Movie::Movie(const QString &name) :
     _name (name),
     _numberOfFrames (0),
-    _framesPerSecond(DEFAULT_FPS),
     _currentlyPlaying (false),
-    _currentFrame (0)
+    _currentFrame (0),
+    _computerSpeedAdjustment (-2)
 {
-    _encoderSettings.setResolution(640,480);
-    _encoderSettings.setCodec("JPG");
+    QSettings settings;
+
+    QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
+    _encoderSettings.setResolution(resolution);
+
+    // Note that this doesn't currently work: the cameras we are using ONLY support saving to JPG files
+    // directly, so if a different format is required we'd have to convert it. We don't.
+    QString format = settings.value("settings/imageFileType","JPG").toString();
+    //_encoderSettings.setCodec(format);
+    _encoderSettings.setCodec("JPG"); // This at least lets us prepare for a future feature that DOES support other formats
+
+    qint32 framesPerSecond = settings.value("settings/framesPerSecond",Movie::DEFAULT_FPS).toInt();
+    _framesPerSecond = framesPerSecond;
 }
 
 Movie::~Movie ()
@@ -31,8 +44,10 @@ Movie::~Movie ()
     // directory we would have used to store those things.
     if (_numberOfFrames == 0) {
         QDir d;
-        if (d.exists("Image Files")) {
-            d.cd ("Image Files");
+        QSettings settings;
+        QString imageStorageLocation = settings.value("settings/imageStorageLocation","Image Files/").toString();
+        if (d.exists(imageStorageLocation)) {
+            d.cd (imageStorageLocation);
             if (d.exists(_name)) {
                 d.cd (_name);
                 d.removeRecursively();
@@ -57,10 +72,19 @@ void Movie::addFrame (QCamera *camera)
         _camera = camera;
         _imageCapture = std::unique_ptr<QCameraImageCapture> (new QCameraImageCapture(camera));
         _imageCapture->setEncodingSettings (_encoderSettings);
+        if (_imageCapture->error() != QCameraImageCapture::NoError) {
+            std::cerr << _imageCapture->errorString().toStdString() << std::endl;
+        }
     }
     QString filename = getImageFilename (_numberOfFrames);
-    _imageCapture->capture (filename);
-    _numberOfFrames++;
+    if (_imageCapture->isReadyForCapture()) {
+        _imageCapture->capture (filename);
+        if (_imageCapture->error() != QCameraImageCapture::NoError) {
+            // For now just write the error to stderr... not a good long-term solution
+            std::cerr << _imageCapture->errorString().toStdString() << std::endl;
+        }
+        _numberOfFrames++;
+    }
 }
 
 void Movie::importFrame (const QString &filename)
@@ -73,7 +97,7 @@ void Movie::importFrame (const QString &filename)
         std::cout << "FAILED: \n"
                   << filename.toStdString() << "\n"
                   << newFilename.toStdString() << std::endl;
-        throw ImportFailedException ();
+        throw Movie::ImportFailedException ();
     }
 }
 
@@ -101,50 +125,6 @@ void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
     }
 }
 
-
-void Movie::setFramesPerSecond (qint32 fps)
-{
-    _framesPerSecond = fps;
-}
-
-qint32 Movie::getFramesPerSecond () const
-{
-    return _framesPerSecond;
-}
-
-void Movie::setResolution (int w, int h)
-{
-    if (_numberOfFrames == 0) {
-        _encoderSettings.setResolution(w,h);
-    } else {
-        throw Movie::NoChangesNowException ("Cannot change resolution after frames have been taken.");
-    }
-}
-
-QSize Movie::getResolution () const
-{
-    return _encoderSettings.resolution();
-}
-
-void Movie::setFormat (const QString &extension)
-{
-    if (_numberOfFrames == 0) {
-        _encoderSettings.setCodec(extension);
-    }else {
-        throw Movie::NoChangesNowException ("Cannot change file format after frames have been taken.");
-    }
-}
-
-QString Movie::getFormat () const
-{
-    return _encoderSettings.codec();
-}
-
-QList<QByteArray> Movie::getSupportedFormats () const
-{
-    return QImageWriter::supportedImageFormats();
-}
-
 void Movie::play (qint32 startFrame, QLabel *video)
 {
     if (startFrame >= _numberOfFrames) {
@@ -152,16 +132,42 @@ void Movie::play (qint32 startFrame, QLabel *video)
     }
     _currentlyPlaying = true;
     _frameDestination = video;
+    _playFrameCounter = 1;
+    _playStartTime.start();
+    _lastFrameTime.start();
     setStillFrame (startFrame, video);
     QObject::connect (&_playbackTimer, &QTimer::timeout, this, &Movie::nextFrame);
-    _playbackTimer.setInterval(1000 / _framesPerSecond);
+    _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
     _playbackTimer.start();
 }
 
 void Movie::nextFrame ()
 {
     if (_currentlyPlaying && _frameDestination) {
-        qint32 targetFrame = _currentFrame + 1;
+        int frameAdjust = 0;
+
+        _playFrameCounter++;
+        int elapsedPlayTime = _playStartTime.elapsed();
+        int millisPerFrame = 1000 / _framesPerSecond;
+        int expectedMillis = _playFrameCounter * millisPerFrame;
+
+        // Tweak the timer to make sure we are playing back at as close to the expected FPS as
+        // possible. This is important if we are playing along with music.
+        qint32 nominalMS = (1000 / _framesPerSecond);
+        if (_lastFrameTime.elapsed() != nominalMS) {
+            _computerSpeedAdjustment = nominalMS - _lastFrameTime.elapsed();
+            _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
+        }
+        _lastFrameTime.restart();
+
+        // Worst case scenario, we can drop frames to catch up.
+        if (expectedMillis < elapsedPlayTime-millisPerFrame) {
+            // Skip a frame.
+            _playFrameCounter++;
+            frameAdjust = 1;
+        }
+
+        qint32 targetFrame = _currentFrame + 1 + frameAdjust;
         if (targetFrame >= _numberOfFrames) {
             targetFrame = 0;
         }
@@ -268,10 +274,13 @@ void Movie::encodeToFile (const QString &filename) const
 QString Movie::getBaseFilename () const
 {
     QDir d;
-    if (!d.exists("Image Files")) {
-        d.mkdir("Image Files");
+    QSettings settings;
+    QString imageStorageLocation = settings.value("settings/imageStorageLocation","Image Files/").toString();
+
+    if (!d.exists(imageStorageLocation)) {
+        d.mkdir(imageStorageLocation);
     }
-    d.cd ("Image Files");
+    d.cd (imageStorageLocation);
     if (!d.exists(_name)) {
         d.mkdir(_name);
     }
@@ -288,6 +297,6 @@ QString Movie::getSaveFilename () const
 QString Movie::getImageFilename (qint32 frame) const
 {
     std::stringstream ss;
-    ss << getBaseFilename().toStdString() << "_" << std::setfill('0') << std::setw(5) << frame;
+    ss << getBaseFilename().toStdString() << "_" << std::setfill('0') << std::setw(5) << frame << "." << _encoderSettings.codec().toLower().toStdString();
     return QString::fromStdString(ss.str());
 }

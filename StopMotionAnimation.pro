@@ -27,15 +27,21 @@ SOURCES += main.cpp\
         stopmotionanimation.cpp \
     movie.cpp \
     soundeffect.cpp \
-    helpdialog.cpp
+    helpdialog.cpp \
+    settingsdialog.cpp \
+    filenameconstructiondialog.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
     soundeffect.h \
-    helpdialog.h
+    helpdialog.h \
+    settingsdialog.h \
+    filenameconstructiondialog.h
 
 FORMS    += stopmotionanimation.ui \
-    helpdialog.ui
+    helpdialog.ui \
+    settingsdialog.ui \
+    filenameconstructiondialog.ui
 
 RESOURCES += \
     resources.qrc
