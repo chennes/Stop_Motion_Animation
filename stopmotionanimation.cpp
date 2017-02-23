@@ -145,6 +145,13 @@ void StopMotionAnimation::on_createFinalMovieButton_clicked()
     // Check to see if the final movie was already created
     //  - If it was, prompt for overwrite
     //  - If not, just encode
+
+    // For now we are just testing...
+    try {
+        _movie->encodeToFile ("test.mp4");
+    } catch (const Movie::EncodingFailedException &e) {
+        _errorDialog.showMessage(e.message());
+    }
 }
 
 void StopMotionAnimation::on_importButton_clicked()

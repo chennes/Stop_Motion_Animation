@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QTimer>
 #include <QTime>
+#include <QProcess>
 
 
 class Movie : public QObject
@@ -64,6 +65,8 @@ public:
      * @brief Unserialize the local data from this object
      */
     bool load(const QString &filename);
+
+    //std::shared_ptr<QProcess> encodeToFile (const QString &filename) const;
 
     void encodeToFile (const QString &filename) const;
 
@@ -138,6 +141,28 @@ public:
         ImportFailedException() {}
         void raise() const { throw *this; }
         ImportFailedException *clone() const {return new ImportFailedException(*this); }
+    };
+
+    class CaptureFailedException : public QException
+    {
+    public:
+        CaptureFailedException(QString message = "") {_message = message;}
+        void raise() const { throw *this; }
+        CaptureFailedException *clone() const {return new CaptureFailedException(*this); }
+        QString message() const {return _message;}
+    private:
+        QString _message;
+    };
+
+    class EncodingFailedException : public QException
+    {
+    public:
+        EncodingFailedException(QString message = "") {_message = message;}
+        void raise() const { throw *this; }
+        EncodingFailedException *clone() const {return new EncodingFailedException(*this); }
+        QString message() const {return _message;}
+    private:
+        QString _message;
     };
 
 };

@@ -4,9 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui multimedia multimediawidgets
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT       += core gui multimedia multimediawidgets widgets
 
 TARGET = Stop_Motion_Animation
 TEMPLATE = app
@@ -29,14 +27,16 @@ SOURCES += main.cpp\
     soundeffect.cpp \
     helpdialog.cpp \
     settingsdialog.cpp \
-    filenameconstructiondialog.cpp
+    filenameconstructiondialog.cpp \
+    avcodecwrapper.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
     soundeffect.h \
     helpdialog.h \
     settingsdialog.h \
-    filenameconstructiondialog.h
+    filenameconstructiondialog.h \
+    avcodecwrapper.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
@@ -45,3 +45,32 @@ FORMS    += stopmotionanimation.ui \
 
 RESOURCES += \
     resources.qrc
+
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavutil
+
+INCLUDEPATH += $$PWD/../ffmpeg/win64/include
+DEPENDPATH += $$PWD/../ffmpeg/win64/include
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/avutil.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libavutil.a
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavcodec
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/avcodec.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libavcodec.a
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavformat
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/avformat.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libavformat.a
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswscale
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/swscale.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libswscale.a
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswresample
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/swresample.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libswresample.a

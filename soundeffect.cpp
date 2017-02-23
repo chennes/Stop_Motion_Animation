@@ -70,6 +70,10 @@ bool SoundEffect::operator< (const SoundEffect& rhs) const
     }
 }
 
+SoundEffect::operator bool() const
+{
+    return (_filename.length()>0);
+}
 
 void SoundEffect::setStartTime (float t)
 {

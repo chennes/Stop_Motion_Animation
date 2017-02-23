@@ -19,6 +19,8 @@ public:
 
     bool operator< (const SoundEffect& rhs) const;
 
+    explicit operator bool() const;
+
     void setStartTime (float t);
     void setInPoint (float t);
     void setOutPoint (float t);
