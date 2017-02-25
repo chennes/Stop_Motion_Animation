@@ -8,6 +8,7 @@
 #include "soundeffect.h"
 #include "helpdialog.h"
 #include "settingsdialog.h"
+#include "backgroundmusicdialog.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -64,6 +65,7 @@ private:
 
     HelpDialog _help;
     SettingsDialog _settings;
+    BackgroundMusicDialog _backgroundMusic;
 
 
 };

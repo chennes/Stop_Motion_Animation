@@ -28,7 +28,10 @@ SOURCES += main.cpp\
     helpdialog.cpp \
     settingsdialog.cpp \
     filenameconstructiondialog.cpp \
-    avcodecwrapper.cpp
+    avcodecwrapper.cpp \
+    backgroundmusicdialog.cpp \
+    utils.cpp \
+    waveform.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -36,12 +39,16 @@ HEADERS  += stopmotionanimation.h \
     helpdialog.h \
     settingsdialog.h \
     filenameconstructiondialog.h \
-    avcodecwrapper.h
+    avcodecwrapper.h \
+    backgroundmusicdialog.h \
+    utils.h \
+    waveform.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
     settingsdialog.ui \
-    filenameconstructiondialog.ui
+    filenameconstructiondialog.ui \
+    backgroundmusicdialog.ui
 
 RESOURCES += \
     resources.qrc

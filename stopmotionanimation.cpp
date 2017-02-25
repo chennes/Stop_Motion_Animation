@@ -142,13 +142,12 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
 
 void StopMotionAnimation::on_createFinalMovieButton_clicked()
 {
-    // Check to see if the final movie was already created
-    //  - If it was, prompt for overwrite
-    //  - If not, just encode
-
-    // For now we are just testing...
+    QString filename = QFileDialog::getSaveFileName(this,
+                                                    tr("Save Finished Movie File"),
+                                                    "My awesome movie",
+                                                    tr("Movie files (*.mp4);;All files (*.*)"));
     try {
-        _movie->encodeToFile ("test.mp4");
+        _movie->encodeToFile (filename);
     } catch (const Movie::EncodingFailedException &e) {
         _errorDialog.showMessage(e.message());
     }
@@ -190,8 +189,6 @@ void StopMotionAnimation::on_settingButton_clicked()
     auto result = _settings.exec();
     if (result == QDialog::Accepted) {
         _settings.store();
-
-        // TODO: Now get all those settings and do something with them...
     }
 }
 
@@ -243,7 +240,8 @@ void StopMotionAnimation::on_deletePhotoButton_clicked()
 
 void StopMotionAnimation::on_backgroundMusicButton_clicked()
 {
-    // Launch the background music selection dialog
+    _backgroundMusic.show();
+    // Connect its slot to set the music
 }
 
 void StopMotionAnimation::on_soundEffectButton_clicked()
