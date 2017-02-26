@@ -9,6 +9,7 @@
 #include "helpdialog.h"
 #include "settingsdialog.h"
 #include "backgroundmusicdialog.h"
+#include "savefinalmoviedialog.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -49,6 +50,8 @@ private slots:
 
     void movieFrameChanged (unsigned int newFrame);
 
+    void saveFinalMovieAccepted();
+
 private:
     Ui::StopMotionAnimation *ui;
 
@@ -66,6 +69,7 @@ private:
     HelpDialog _help;
     SettingsDialog _settings;
     BackgroundMusicDialog _backgroundMusic;
+    SaveFinalMovieDialog _saveFinalMovie;
 
 
 };

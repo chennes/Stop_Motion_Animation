@@ -15,6 +15,10 @@ BackgroundMusicDialog::BackgroundMusicDialog(QWidget *parent) :
     _decoder(NULL)
 {
     ui->setupUi(this);
+    ui->playPauseButton->setText("");
+    ui->rewindButton->setText("");
+    ui->playPauseButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaPlay));
+    ui->rewindButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaSkipBackward));
 }
 
 BackgroundMusicDialog::~BackgroundMusicDialog()

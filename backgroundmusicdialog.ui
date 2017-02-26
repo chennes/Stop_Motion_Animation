@@ -23,9 +23,43 @@
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <item>
+      <widget class="QPushButton" name="removeMusicButton">
+       <property name="text">
+        <string>Remove music</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="chooseMusicFileButton">
        <property name="text">
         <string>Choose music file...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="rewindButton">
+       <property name="text">
+        <string>Rewind</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="playPauseButton">
+       <property name="text">
+        <string>Play</string>
        </property>
       </widget>
      </item>

@@ -2,4 +2,9 @@
     <qresource prefix="/files">
         <file alias="help.html">data/help/Help.html</file>
     </qresource>
+
+    <qresource prefix="/images">
+        <file alias="splashscreen.png">data/PLS-SM-Splashscreen.png</file>
+    </qresource>
+
 </RCC>

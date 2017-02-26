@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     avcodecwrapper.cpp \
     backgroundmusicdialog.cpp \
     utils.cpp \
-    waveform.cpp
+    waveform.cpp \
+    savefinalmoviedialog.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -42,17 +43,20 @@ HEADERS  += stopmotionanimation.h \
     avcodecwrapper.h \
     backgroundmusicdialog.h \
     utils.h \
-    waveform.h
+    waveform.h \
+    savefinalmoviedialog.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
     settingsdialog.ui \
     filenameconstructiondialog.ui \
-    backgroundmusicdialog.ui
+    backgroundmusicdialog.ui \
+    savefinalmoviedialog.ui
 
 RESOURCES += \
     resources.qrc
 
+RC_ICONS = PLS-SM-Icon.ico
 
 win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavutil
 
@@ -81,3 +85,5 @@ win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswresample
 
 win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/swresample.lib
 else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libswresample.a
+
+DISTFILES +=

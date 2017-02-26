@@ -7,13 +7,16 @@
 #include <QJsonDocument>
 #include <QSettings>
 #include <QImageEncoderControl>
-#include <QProcess>
+#include <QGraphicsScene>
+#include <QGraphicsTextItem>
+#include <QPainter>
 #include <iomanip>
 #include <thread>
 #include <fstream>
 #include <sstream>
 
 #include "avcodecwrapper.h"
+#include "settingsdialog.h"
 
 const qint32 Movie::DEFAULT_FPS (15);
 
@@ -266,19 +269,26 @@ bool Movie::load (const QString &filename)
     return true;
 }
 
-void Movie::encodeToFile (const QString &filename) const
+void Movie::encodeToFile (const QString &filename, const QString &title, const QString &credits) const
 {
+    QSettings settings;
     avcodecWrapper encoder;
+
+    // Video frames first:
+    CreatePreTitle(encoder);
+    CreateTitle(encoder, title);
     for (int frame = 0; frame < _numberOfFrames; frame++) {
         encoder.AddVideoFrame(getImageFilename(frame));
     }
+    CreateCredits(encoder, credits);
+
+    // Audio second:
     if (_backgroundMusic) {
         encoder.AddAudioFile(_backgroundMusic);
     }
     foreach (const SoundEffect &sfx, _soundEffects) {
         encoder.AddAudioFile(sfx);
     }
-    QSettings settings;
     QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
 
     // Consider threading this call if it turns out to take a signficant amount of time...
@@ -289,61 +299,122 @@ void Movie::encodeToFile (const QString &filename) const
     }
 }
 
-//std::shared_ptr<QProcess> Movie::encodeToFile (const QString &filename) const
-//{
-//    // Construct the call to FFmpeg...
-//    QStringList ffmpegArguments;
 
-//    // "Input" frame rate (which we will tell FFmpeg matches our output frame rate)
-//    ffmpegArguments.push_back("-r " + QString::number(_framesPerSecond));
+void Movie::CreatePreTitle(avcodecWrapper &encoder) const
+{
+    QSettings settings;
+    QString filename = settings.value("settings/preTitleScreenLocation",
+                                      SettingsDialog::getDefault("settings/preTitleScreenLocation")).toString();
+    double duration = settings.value("settings/preTitleScreenDuration",
+                                     SettingsDialog::getDefault("settings/preTitleScreenDuration")).toDouble();
+    if (duration > 0 && filename != "") {
+        QFile preTitleScreenCheck (filename);
+        if (!preTitleScreenCheck.exists()) {
+            throw EncodingFailedException ("Pre-Title screen could not be opened: " + filename);
+        }
+        int numberOfFrames = int(std::round(_framesPerSecond * duration));
+        for (int frame = 0; frame < numberOfFrames; frame++) {
+            // Just blindly add the file over and over again. TODO: Someday consider checking it for
+            // validity first.
+            encoder.AddVideoFrame(filename);
+        }
+    }
+}
 
-//    // Our image filename pattern is (filename)_#####.(extension)
-//    QString filenamePattern (getBaseFilename() + "_%5d");
-//    ffmpegArguments.push_back("-i " + filenamePattern);
+void Movie::CreateTitle(avcodecWrapper &encoder, const QString &title) const
+{
+    QSettings settings;
+    double duration = settings.value("settings/titleScreenDuration",
+                                     SettingsDialog::getDefault("settings/titleScreenDuration")).toDouble();
+    if (duration > 0 && title != "") {
+        QSize resolution = settings.value("settings/resolution",SettingsDialog::getDefault("settings/resolution")).toSize();
+        QGraphicsScene scene;
+        scene.setSceneRect(0,0,resolution.width(),resolution.height());
+        scene.setBackgroundBrush(Qt::black);
+        QFont titleFont;
+        titleFont.setBold(true);
+        titleFont.setPixelSize (int(0.08 * (double)resolution.height()));
+        QGraphicsTextItem *titleTextItem = scene.addText ("title", titleFont);
+        titleTextItem->setHtml("<center>" + title + "</center>");
+        titleTextItem->setDefaultTextColor(Qt::white);
+        titleTextItem->setTextWidth(0.8*resolution.width());
 
-//    // TODO: Audio stuff will go here...
+        QRectF textSize = titleTextItem->boundingRect();
+        QPointF textPosition (0.1 * resolution.width(),(resolution.height() - textSize.height())/2);
+        titleTextItem->setPos (textPosition);
 
-//    // "Output" frame rate, same as input
-//    ffmpegArguments.push_back("-r " + QString::number(_framesPerSecond));
+        QImage img(resolution.width(), resolution.height(), QImage::Format_ARGB32);
+        QPainter painter;
+        painter.begin(&img);
+        scene.render(&painter);
+        painter.end();
 
-//    // Set the output duration so that if there is audio extending after the end of the video
-//    // it gets cut off (instead of just playing with black frames).
-//    float duration = _numberOfFrames / float(_framesPerSecond);
-//    ffmpegArguments.push_back("-t " + QString::number(duration));
+        QString titleScreenFilename = getBaseFilename() + "_titleScreen.jpg";
+        img.save(titleScreenFilename);
+        int numberOfFrames = int(std::round(_framesPerSecond * duration));
+        for (int frame = 0; frame < numberOfFrames; frame++) {
+            encoder.AddVideoFrame(titleScreenFilename);
+        }
+    }
+}
 
-//    // Make sure FFmpeg never waits for stdin:
-//    ffmpegArguments.push_back("-nostdin");
+void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
+{   
+    QSettings settings;
+    double duration = settings.value("settings/creditsDuration",
+                                     SettingsDialog::getDefault("settings/creditsDuration")).toDouble();
+    if (duration > 0 && credits != "") {
+        QSize resolution = settings.value("settings/resolution",SettingsDialog::getDefault("settings/resolution")).toSize();
+        QGraphicsScene scene;
+        scene.setSceneRect(0,0,resolution.width(),resolution.height());
+        scene.setBackgroundBrush(Qt::black);
+        QFont creditsFont;
+        creditsFont.setPixelSize (int(0.05 * (double)resolution.height()));
 
-//    // Use an older video format so that Windows Media Player can play it
-//    ffmpegArguments.push_back("-pix_fmt yuv420p");
+        QGraphicsTextItem *titleTextItem = scene.addText ("", creditsFont);
 
-//    QSettings settings;
-//    QString pathToFFmpeg = settings.value("settings/pathToFFmpeg", "").toString();
-//    if (pathToFFmpeg == "") {
-//        if (QSysInfo::currentCpuArchitecture() == "x86_64") {
-//            QString system = QSysInfo::productType();
-//            if (system == "windows") {
-//                pathToFFmpeg = "./data/windows/ffmpeg/ffmpeg.exe";
-//            } else if (system == "macos") {
-//                pathToFFmpeg = "./data/macos/ffmpeg/ffmpeg";
-//            } else {
-//                // Something else, try to auto-detect a system-installed ffmpeg
-//            }
-//        } else {
-//            // Not a current standard (in 2017) computer CPU, try to auto-detect a system-installed ffmpeg
-//        }
-//    }
+        // The credits are coming in in plain text, but we really want them to be in HTML:
+        // in particular, we need to replace \n with <br/>.
+        QString htmlCredits (credits);
+        htmlCredits.replace('\n',"<br/>");
 
-//    std::shared_ptr<QProcess> ffmpegProcess (new QProcess);
-//    ffmpegProcess->setProgram(pathToFFmpeg);
-//    ffmpegProcess->setArguments(ffmpegArguments);
-//    QString timestamp (QString::number(QDateTime::currentSecsSinceEpoch()));
-//    ffmpegProcess->setStandardOutputFile(getBaseFilename() + "ffmpeg_" + timestamp + ".out");
-//    ffmpegProcess->setStandardErrorFile(getBaseFilename() + "ffmpeg_" + timestamp + ".err");
-//    ffmpegProcess->start();
 
-//    return ffmpegProcess;
-//}
+        QDate today;
+        titleTextItem->setHtml("<center><h1>Credits</h1></center><p>" + htmlCredits + "</p><br/><p>Created " + today.toString() + " using Pioneer Library System's Stop Motion Creator software.</p>");
+        titleTextItem->setDefaultTextColor(Qt::white);
+        titleTextItem->setTextWidth(0.8*resolution.width());
+
+        QRectF textSize = titleTextItem->boundingRect();
+
+        int numberOfFrames = int(std::round(_framesPerSecond * duration));
+        int numberOfStillFrames = numberOfFrames / 10;
+
+        // See if we need to scroll the credits:
+        qreal distancePerFrame = 0;
+        if (textSize.height() > resolution.height()) {
+            distancePerFrame = qreal(textSize.height() - resolution.height()) / (qreal)(numberOfFrames-(2*numberOfStillFrames));
+        }
+
+        qreal verticalPosition = 0;
+        for (int frame = 0; frame < numberOfFrames; frame++) {
+            if (frame > numberOfStillFrames && frame < numberOfFrames-numberOfStillFrames) {
+                verticalPosition -= distancePerFrame;
+            }
+            QPointF textPosition (0.1 * resolution.width(),verticalPosition);
+            titleTextItem->setPos(textPosition);
+
+            QImage img(resolution.width(), resolution.height(), QImage::Format_ARGB32);
+            QPainter painter;
+            painter.begin(&img);
+            scene.render(&painter);
+            painter.end();
+
+            QString titleScreenFilename = getBaseFilename() + "_credits_" + QString::number(frame) + ".jpg";
+            img.save(titleScreenFilename);
+            encoder.AddVideoFrame(titleScreenFilename);
+        }
+    }
+}
 
 QString Movie::getBaseFilename () const
 {

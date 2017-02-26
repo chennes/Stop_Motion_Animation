@@ -14,6 +14,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     _camera(NULL)
 {
     ui->setupUi(this);
+    connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
     QSettings settings;
     QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
     _viewFinderSettings.setResolution(resolution);
@@ -142,12 +143,17 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
 
 void StopMotionAnimation::on_createFinalMovieButton_clicked()
 {
-    QString filename = QFileDialog::getSaveFileName(this,
-                                                    tr("Save Finished Movie File"),
-                                                    "My awesome movie",
-                                                    tr("Movie files (*.mp4);;All files (*.*)"));
+    _saveFinalMovie.reset(_movie->getName());
+    _saveFinalMovie.show();
+}
+
+void StopMotionAnimation::saveFinalMovieAccepted()
+{
+    QString filename = _saveFinalMovie.filename();
+    QString title = _saveFinalMovie.movieTitle();
+    QString credits = _saveFinalMovie.credits();
     try {
-        _movie->encodeToFile (filename);
+        _movie->encodeToFile (filename, title, credits);
     } catch (const Movie::EncodingFailedException &e) {
         _errorDialog.showMessage(e.message());
     }

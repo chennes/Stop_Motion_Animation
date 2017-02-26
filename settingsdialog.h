@@ -2,6 +2,7 @@
 #define SETTINGSDIALOG_H
 
 #include <QDialog>
+#include <QAbstractButton>
 #include "filenameconstructiondialog.h"
 
 namespace Ui {
@@ -32,6 +33,8 @@ public:
      */
     void store ();
 
+    static QVariant getDefault (const QString &key);
+
 protected:
     virtual void closeEvent(QCloseEvent *event);
 
@@ -41,9 +44,15 @@ private slots:
 
     void on_filenameFormatHelpButton_clicked();
 
+    void on_preTitleScreenFileBrowseButton_clicked();
+
+    void on_buttonBox_clicked(QAbstractButton *button);
+
 private:
     Ui::SettingsDialog *ui;
     FilenameConstructionDialog _filenameConstructionHelp;
+
+    static QMap<QString, QVariant> SETTING_DEFAULTS;
 };
 
 #endif // SETTINGSDIALOG_H

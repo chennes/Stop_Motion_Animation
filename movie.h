@@ -14,6 +14,8 @@
 #include <QTime>
 #include <QProcess>
 
+#include "avcodecwrapper.h"
+
 
 class Movie : public QObject
 {
@@ -66,9 +68,7 @@ public:
      */
     bool load(const QString &filename);
 
-    //std::shared_ptr<QProcess> encodeToFile (const QString &filename) const;
-
-    void encodeToFile (const QString &filename) const;
+    void encodeToFile (const QString &filename, const QString &title, const QString &credits) const;
 
 signals:
 
@@ -86,6 +86,10 @@ protected:
     QString getSaveFilename () const;
 
     QString getImageFilename (int frame) const;
+
+    void CreatePreTitle(avcodecWrapper &encoder) const;
+    void CreateTitle(avcodecWrapper &encoder, const QString &title) const;
+    void CreateCredits(avcodecWrapper &encoder, const QString &credits) const;
 
 private:
 

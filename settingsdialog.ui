@@ -6,23 +6,64 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>426</width>
-    <height>207</height>
+    <width>430</width>
+    <height>266</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Stop Motion Creator Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="6" column="0">
+    <widget class="QLabel" name="preTitleScreenFileLabel">
+     <property name="text">
+      <string>Pre-title screen file</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QLineEdit" name="preTitleScreenFileLineEdit"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="preTitleScreenFileBrowseButton">
+       <property name="text">
+        <string>Browse...</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="resolutionLabel">
+     <property name="text">
+      <string>Resolution</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="cameraLabel">
+     <property name="text">
+      <string>Camera</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QComboBox" name="cameraCombo"/>
+   </item>
+   <item row="5" column="1">
+    <widget class="QComboBox" name="resolutionCombo"/>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="fileTypeCombo"/>
+   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="fileTypeLabel">
      <property name="text">
       <string>Image File Type</string>
      </property>
     </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QComboBox" name="fileTypeCombo"/>
    </item>
    <item row="1" column="0">
     <widget class="QLabel" name="fpsLabel">
@@ -76,33 +117,73 @@
      </item>
     </layout>
    </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="camearLabel">
-     <property name="text">
-      <string>Camera</string>
-     </property>
-    </widget>
+   <item row="7" column="0" colspan="2">
+    <layout class="QHBoxLayout" name="horizontalLayout_4">
+     <item>
+      <widget class="QLabel" name="preTitleDurationLabel">
+       <property name="text">
+        <string>Pre-title duration</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="preTitleDurationSpinbox"/>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="titleDurationLabel">
+       <property name="text">
+        <string>Title duration</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="titleDurationSpinbox"/>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="creditsDurationLabel">
+       <property name="text">
+        <string>Credits duration</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="creditsDurationSpinbox"/>
+     </item>
+    </layout>
    </item>
-   <item row="4" column="1">
-    <widget class="QComboBox" name="cameraCombo"/>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="resolutionLabel">
-     <property name="text">
-      <string>Resolution</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <widget class="QComboBox" name="resolutionCombo"/>
-   </item>
-   <item row="6" column="1">
+   <item row="8" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::Reset</set>
      </property>
     </widget>
    </item>
