@@ -18,6 +18,8 @@ public:
     explicit BackgroundMusicDialog(QWidget *parent = 0);
     ~BackgroundMusicDialog();
 
+    void setMovieDuration (double duration);
+
     void loadFile (const QString &filename);
 
 
@@ -30,6 +32,7 @@ private:
     Ui::BackgroundMusicDialog *ui;
     QAudioDecoder *_decoder;
     QGraphicsScene *_scene;
+    double _movieDuration;
 };
 
 #endif // BACKGROUNDMUSICDIALOG_H

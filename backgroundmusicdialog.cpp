@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QAudioDecoder>
 #include <QSettings>
+#include "settingsdialog.h"
 
 #include <iostream>
 
@@ -59,5 +60,23 @@ void BackgroundMusicDialog::readBuffer ()
     QAudioBuffer buffer = _decoder->read();
     ui->waveform->setDuration(_decoder->duration());
     ui->waveform->addBuffer(buffer);
+
+    QSettings settings;
+    double preTitleDuration = settings.value("settings/preTitleScreenDuration",
+                                             SettingsDialog::getDefault("settings/preTitleScreenDuration")).toDouble();
+    double titleDuration = settings.value("settings/titleScreenDuration",
+                                             SettingsDialog::getDefault("settings/titleScreenDuration")).toDouble();
+    double creditsDuration = settings.value("settings/creditsDuration",
+                                             SettingsDialog::getDefault("settings/creditsDuration")).toDouble();
+    double movieDuration = _movieDuration;
+
+    double totalDuration = preTitleDuration + titleDuration + movieDuration + creditsDuration;
+
+    ui->waveform->setSelectionLength(totalDuration*1000);
+}
+
+void BackgroundMusicDialog::setMovieDuration (double duration)
+{
+    _movieDuration = duration;
 }
 

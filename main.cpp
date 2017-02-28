@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     // Set up the name of the app so we can use QSettings via its default constructor
     QCoreApplication::setOrganizationName("Pioneer Library System");
     QCoreApplication::setOrganizationDomain("pioneerlibrarysystem.org");
-    QCoreApplication::setApplicationName("Stop Motion Animation");
+    QCoreApplication::setApplicationName("Stop Motion Creator");
 
     QPixmap pixmap(":/splashscreen.png");
     QSplashScreen splash(pixmap);
@@ -20,12 +20,11 @@ int main(int argc, char *argv[])
 
     QTime now;
     now.start();
-    while (now.elapsed() < 1000) {
-        continue;
-    }
-
     StopMotionAnimation w;
     w.show();
+    while (now.elapsed() < 1000) {
+        a.processEvents();
+    }
     splash.finish(&w);
 
     return a.exec();

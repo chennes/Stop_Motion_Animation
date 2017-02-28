@@ -6,7 +6,7 @@
 
 QT       += core gui multimedia multimediawidgets widgets
 
-TARGET = Stop_Motion_Animation
+TARGET = Stop_Motion_Creator
 TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use

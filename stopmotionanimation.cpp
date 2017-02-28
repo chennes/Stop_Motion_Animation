@@ -14,6 +14,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     _camera(NULL)
 {
     ui->setupUi(this);
+    this->setWindowTitle("PLS Stop Motion Creator");
     connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
     QSettings settings;
     QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
@@ -246,6 +247,9 @@ void StopMotionAnimation::on_deletePhotoButton_clicked()
 
 void StopMotionAnimation::on_backgroundMusicButton_clicked()
 {
+    QSettings settings;
+    qint32 framesPerSecond = settings.value("settings/framesPerSecond",SettingsDialog::getDefault("settings/framesPerSecond")).toInt();
+    _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
     _backgroundMusic.show();
     // Connect its slot to set the music
 }

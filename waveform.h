@@ -3,6 +3,9 @@
 
 #include <QGraphicsView>
 #include <QAudioBuffer>
+#include <QGraphicsRectItem>
+#include <QGraphicsLineItem>
+
 
 /**
  * @brief The Waveform class displays an audio waveform and allows interaction
@@ -33,10 +36,12 @@ public:
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
-    virtual void dragEnterEvent(QDragEnterEvent *event);
-    virtual void dragLeaveEvent(QDragLeaveEvent *event);
-    virtual void dragMoveEvent(QDragMoveEvent *event);
+    virtual void mouseMoveEvent(QMouseEvent *event);
     virtual void resizeEvent(QResizeEvent *event);
+    virtual void paintEvent(QPaintEvent *event);
+
+private:
+    void UpdateSelectionRectangles ();
 
 private:
     QGraphicsScene _scene;
@@ -45,6 +50,34 @@ private:
     qint64 _selectionLength;
     qint64 _cursorPosition;
     qreal _maxValue;
+
+    //Track some extra distances to make the code clearer
+    qint64 _preTitlePixels;
+    qint64 _titlePixels;
+    qint64 _moviePixels;
+    qint64 _creditsPixels;
+    qint64 _playheadPixels;
+
+    // We are going to manually manage dragging for now:
+    const int SNAP_DISTANCE = 10; // pixels
+    bool _currentlyDraggingSelection;
+    int _dragStartX;
+
+    // Elements in the scene that we need to change over time:
+    QGraphicsLineItem *_cursorLine;
+    QGraphicsLineItem *_playheadLine;
+    QGraphicsItemGroup *_selectionRegion;
+    QGraphicsRectItem *_preTitleSelectionRegion;
+    QGraphicsRectItem *_titleSelectionRegion;
+    QGraphicsRectItem *_mainSelectionRegion;
+    QGraphicsRectItem *_creditsSelectionRegion;
+
+    // Same as above, but for use when the user is dragging them
+    QGraphicsItemGroup *_draggingSelectionRegion;
+    QGraphicsRectItem *_draggingPreTitleSelectionRegion;
+    QGraphicsRectItem *_draggingTitleSelectionRegion;
+    QGraphicsRectItem *_draggingMainSelectionRegion;
+    QGraphicsRectItem *_draggingCreditsSelectionRegion;
 };
 
 #endif // WAVEFORM_H
