@@ -16,7 +16,14 @@ Waveform::Waveform(QWidget *parent) :
     _draggingSelectionRegion (false)
 {
     QGraphicsView::setScene(&_scene);
+    this->setMouseTracking(true);
     reset();
+
+
+    _selectionRegion->hide();
+    _draggingSelectionRegion->hide();
+    _cursorLine->hide();
+    _playheadLine->hide();
 }
 
 void Waveform::reset()
@@ -48,8 +55,13 @@ void Waveform::reset()
     _scene.addItem(_draggingSelectionRegion);
     _draggingSelectionRegion->hide();
 
-    _cursorLine = _scene.addLine (0,0,0,this->height());
-    _playheadLine = _scene.addLine (0,0,0,this->height());
+    QPen cursorPen (QColor(0,0,0,100));
+    _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
+    _cursorLine->setZValue(11);
+
+    QPen playheadPen (QColor(0,0,0,200));
+    _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
+    _playheadLine->setZValue(10);
 
     _scene.setSceneRect(0,0,this->width(), this->height());
     this->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
@@ -57,7 +69,7 @@ void Waveform::reset()
     _totalLength = 0;
     _selectionStart = 0;
     _selectionLength = 0;
-    _cursorPosition = 0;
+    _playheadPosition = 0;
     _maxValue = 0;
 }
 
@@ -120,6 +132,11 @@ void Waveform::addBuffer (const QAudioBuffer &buffer)
                               this->height() - pixelValue * this->height()),
                        QPen(Qt::green, 1));
     }
+
+    // Make sure the various UI objects are showing now...
+    _selectionRegion->show();
+    _cursorLine->show();
+    _playheadLine->show();
 }
 
 void Waveform::setSelectionStart (qint64 millis)
@@ -130,18 +147,19 @@ void Waveform::setSelectionStart (qint64 millis)
 
 void Waveform::setSelectionLength (qint64 millis)
 {
-    _selectionLength = ((double) millis / (double)_totalLength) * this->width();;
+    _selectionLength = ((double) millis / (double)_totalLength) * this->width();
     UpdateSelectionRectangles();
 }
 
-void Waveform::setCursorPosition (qint64 millis)
+void Waveform::setPlayheadPosition (qint64 millis)
 {
-    _cursorPosition = millis;
+    _playheadPosition = ((double) millis / (double)_totalLength) * this->width();
+    _playheadLine->setX (_playheadPosition);
 }
 
-qint64 Waveform::getCursorPosition () const
+qint64 Waveform::getPlayheadPosition () const
 {
-    return _cursorPosition;
+    return (qint64)(((double)_playheadPosition/(double)this->width()) * _totalLength);
 }
 
 qint64 Waveform::getSelectionStart () const
@@ -247,11 +265,12 @@ void Waveform::UpdateSelectionRectangles ()
 
 void Waveform::mousePressEvent(QMouseEvent *event)
 {
+    _dragStartTime.restart();
+    _dragStartX = event->pos().x();
     if (event->x() >= _selectionStart &&
         event->x() <= _selectionStart + _selectionLength) {
         // The mouse was pressed within the selection region
         _currentlyDraggingSelection = true;
-        _dragStartX = event->pos().x();
 
         _draggingPreTitleSelectionRegion->setX(_preTitleSelectionRegion->x());
         _draggingTitleSelectionRegion->setX(_titleSelectionRegion->x());
@@ -260,13 +279,25 @@ void Waveform::mousePressEvent(QMouseEvent *event)
 
         _draggingSelectionRegion->show();
         _selectionRegion->hide();
+        _cursorLine->hide();
     }
     QGraphicsView::mousePressEvent (event);
 }
 
 void Waveform::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (_currentlyDraggingSelection) {
+    if (abs(_dragStartX - event->x()) <= 1) {
+        // Maybe this was really a click... how long was the button down?
+        if (_dragStartTime.elapsed() < 500) {
+            // Move the playhead to the cursor
+            _playheadLine->setX(event->x());
+            _playheadPosition = event->x();
+
+            double percentage = (double)_playheadPosition / (double)this->width();
+            qint64 millis = percentage * _totalLength;
+            emit playheadManuallyChanged (millis);
+        }
+    } else if (_currentlyDraggingSelection) {
         _selectionStart = _draggingPreTitleSelectionRegion->x();
         _preTitleSelectionRegion->setX(_draggingPreTitleSelectionRegion->x());
         _titleSelectionRegion->setX(_draggingTitleSelectionRegion->x());
@@ -277,11 +308,13 @@ void Waveform::mouseReleaseEvent(QMouseEvent *event)
         _selectionRegion->show();
     }
     _currentlyDraggingSelection = false;
+    _cursorLine->show();
     QGraphicsView::mouseReleaseEvent (event);
 }
 
 void Waveform::mouseMoveEvent(QMouseEvent *event)
 {
+    _cursorLine->setX (event->x());
     QGraphicsView::mouseMoveEvent (event);
     if (_currentlyDraggingSelection) {
         int actualX = event->pos().x();
@@ -319,6 +352,8 @@ void Waveform::mouseMoveEvent(QMouseEvent *event)
         _draggingTitleSelectionRegion->setX(_titleSelectionRegion->x()+dragDistance-snapOffset);
         _draggingMainSelectionRegion->setX(_mainSelectionRegion->x()+dragDistance-snapOffset);
         _draggingCreditsSelectionRegion->setX(_creditsSelectionRegion->x()+dragDistance-snapOffset);
+    } else {
+        _cursorLine->show();
     }
 }
 

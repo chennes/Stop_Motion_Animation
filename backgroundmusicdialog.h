@@ -5,6 +5,9 @@
 #include <QString>
 #include <QAudioDecoder>
 #include <QGraphicsScene>
+#include <QMediaPlayer>
+
+#include "soundeffect.h"
 
 namespace Ui {
 class BackgroundMusicDialog;
@@ -22,17 +25,33 @@ public:
 
     void loadFile (const QString &filename);
 
+    SoundEffect getBackgroundMusic () const;
+
+protected:
+    virtual void showEvent(QShowEvent * event);
+    virtual void closeEvent(QCloseEvent * e);
+
 
 private slots:
     void on_chooseMusicFileButton_clicked();
+    void on_playPauseButton_clicked();
     void readBuffer ();
+    void playerPositionChanged (qint64 newPosition);
+    void playerStateChanged (QMediaPlayer::State state);
+    void setPlayhead (qint64 newPosition);
 
+    void on_removeMusicButton_clicked();
+
+    void on_rewindButton_clicked();
 
 private:
     Ui::BackgroundMusicDialog *ui;
+    QString _filename;
     QAudioDecoder *_decoder;
     QGraphicsScene *_scene;
+    QMediaPlayer *_player;
     double _movieDuration;
+    bool _firstLaunch;
 };
 
 #endif // BACKGROUNDMUSICDIALOG_H

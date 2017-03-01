@@ -11,6 +11,8 @@ class SoundEffect : public QObject
 public:
     SoundEffect(const QString &filename = "");
 
+    SoundEffect(const QString &filename, double start, double in, double out);
+
     SoundEffect(const SoundEffect &sfx);
 
     SoundEffect& operator= (const SoundEffect& rhs);
@@ -21,13 +23,13 @@ public:
 
     explicit operator bool() const;
 
-    void setStartTime (float t);
-    void setInPoint (float t);
-    void setOutPoint (float t);
+    void setStartTime (double t);
+    void setInPoint (double t);
+    void setOutPoint (double t);
 
-    float getStartTime () const;
-    float getInPoint () const;
-    float getOutPoint () const;
+    double getStartTime () const;
+    double getInPoint () const;
+    double getOutPoint () const;
 
     void play () const;
 
@@ -41,7 +43,7 @@ public:
      * the start time of this clip. While background music probably starts
      * at t=0, most sound effects will not.
      */
-    void playFrom (float t) const;
+    void playFrom (double t) const;
 
     void stop () const;
 

@@ -11,8 +11,18 @@ SoundEffect::SoundEffect(const QString &filename):
 {
     if (_filename.length() > 0) {
         _playback.setMedia (QUrl::fromLocalFile(filename));
-        _out = float(_playback.duration()) / 1000.0;
+        _out = double(_playback.duration()) / 1000.0;
     }
+}
+
+SoundEffect::SoundEffect(const QString &filename, double start, double in, double out):
+    _filename (filename),
+    _startTime(start),
+    _in(in),
+    _out(out),
+    _isPlaying (false)
+{
+    _playback.setMedia (QUrl::fromLocalFile(filename));
 }
 
 
@@ -75,38 +85,38 @@ SoundEffect::operator bool() const
     return (_filename.length()>0);
 }
 
-void SoundEffect::setStartTime (float t)
+void SoundEffect::setStartTime (double t)
 {
     _startTime = t;
 }
 
 
-void SoundEffect::setInPoint (float t)
+void SoundEffect::setInPoint (double t)
 {
     _in = t;
 }
 
 
-void SoundEffect::setOutPoint (float t)
+void SoundEffect::setOutPoint (double t)
 {
     _out = t;
 }
 
 
 
-float SoundEffect::getStartTime () const
+double SoundEffect::getStartTime () const
 {
     return _startTime;
 }
 
 
-float SoundEffect::getInPoint () const
+double SoundEffect::getInPoint () const
 {
     return _in;
 }
 
 
-float SoundEffect::getOutPoint () const
+double SoundEffect::getOutPoint () const
 {
     return _out;
 }
@@ -141,7 +151,7 @@ void SoundEffect::load (const QJsonObject &json)
 
     if (_filename.length() > 0) {
         _playback.setMedia (QUrl::fromLocalFile(_filename));
-        _out = float(_playback.duration()) / 1000.0;
+        _out = double(_playback.duration()) / 1000.0;
     }
 }
 

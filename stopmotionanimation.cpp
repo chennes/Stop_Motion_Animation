@@ -174,7 +174,7 @@ void StopMotionAnimation::on_importButton_clicked()
             ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
             ui->horizontalSlider->setMaximum(numberOfFrames+1);
             ui->horizontalSlider->setValue(numberOfFrames+1);
-        } catch (Movie::ImportFailedException &e) {
+        } catch (Movie::ImportFailedException &) {
             _errorDialog.showMessage("Failed to import the file " + filename);
             return;
         }
@@ -252,6 +252,12 @@ void StopMotionAnimation::on_backgroundMusicButton_clicked()
     _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
     _backgroundMusic.show();
     // Connect its slot to set the music
+    connect (&_backgroundMusic, &BackgroundMusicDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
+}
+
+void StopMotionAnimation::setBackgroundMusic ()
+{
+    _movie->addBackgroundMusic (_backgroundMusic.getBackgroundMusic());
 }
 
 void StopMotionAnimation::on_soundEffectButton_clicked()

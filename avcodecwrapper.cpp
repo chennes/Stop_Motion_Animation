@@ -255,7 +255,7 @@ AVFrame *avcodecWrapper::alloc_audio_frame(enum AVSampleFormat sample_fmt,
     return frame;
 }
 
-void avcodecWrapper::open_audio(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg)
+void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg)
 {
     AVCodecContext *c;
     int nb_samples;
@@ -433,7 +433,7 @@ AVFrame *avcodecWrapper::alloc_picture(enum AVPixelFormat pix_fmt)
     return picture;
 }
 
-void avcodecWrapper::open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg)
+void avcodecWrapper::open_video(AVFormatContext *, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg)
 {
     int ret;
     AVCodecContext *c = ost->enc;
@@ -604,7 +604,7 @@ int avcodecWrapper::write_video_frame(AVFormatContext *oc, OutputStream *ost)
     return (frame || got_packet) ? 0 : 1;
 }
 
-void avcodecWrapper::close_stream(AVFormatContext *oc, OutputStream *ost)
+void avcodecWrapper::close_stream(AVFormatContext *, OutputStream *ost)
 {
     avcodec_free_context(&ost->enc);
     av_frame_free(&ost->frame);
@@ -626,7 +626,6 @@ void avcodecWrapper::wrapMain()
     int have_video = 0, have_audio = 0;
     int encode_video = 0, encode_audio = 0;
     AVDictionary *opt = NULL;
-    int i;
 
     /* Initialize libavcodec, and register all codecs and formats. */
     av_register_all();

@@ -5,6 +5,7 @@
 #include <QAudioBuffer>
 #include <QGraphicsRectItem>
 #include <QGraphicsLineItem>
+#include <QTime>
 
 
 /**
@@ -14,6 +15,8 @@
  */
 class Waveform : public QGraphicsView
 {
+    Q_OBJECT
+
 public:
     Waveform(QWidget *parent = NULL);
 
@@ -27,11 +30,15 @@ public:
 
     void setSelectionLength (qint64 millis);
 
-    void setCursorPosition (qint64 millis);
+    void setPlayheadPosition (qint64 millis);
 
-    qint64 getCursorPosition () const;
+    qint64 getPlayheadPosition () const;
 
     qint64 getSelectionStart () const;
+
+signals:
+
+    void playheadManuallyChanged (qint64 millis);
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
@@ -48,7 +55,7 @@ private:
     qint64 _totalLength;
     qint64 _selectionStart;
     qint64 _selectionLength;
-    qint64 _cursorPosition;
+    qint64 _playheadPosition;
     qreal _maxValue;
 
     //Track some extra distances to make the code clearer
@@ -62,6 +69,7 @@ private:
     const int SNAP_DISTANCE = 10; // pixels
     bool _currentlyDraggingSelection;
     int _dragStartX;
+    QTime _dragStartTime;
 
     // Elements in the scene that we need to change over time:
     QGraphicsLineItem *_cursorLine;

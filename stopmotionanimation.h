@@ -52,6 +52,8 @@ private slots:
 
     void saveFinalMovieAccepted();
 
+    void setBackgroundMusic();
+
 private:
     Ui::StopMotionAnimation *ui;
 
