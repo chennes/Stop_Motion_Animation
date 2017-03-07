@@ -38,6 +38,8 @@ public:
 
     void deleteLastFrame ();
 
+    QString getMostRecentFrame () const;
+
     void setStillFrame (int frameNumber, QLabel *video);
 
     void play (int startFrame, QLabel *video);

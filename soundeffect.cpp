@@ -104,6 +104,11 @@ void SoundEffect::setOutPoint (double t)
 
 
 
+QString SoundEffect::getFilename () const
+{
+    return _filename;
+}
+
 double SoundEffect::getStartTime () const
 {
     return _startTime;

@@ -314,21 +314,64 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
     }
 }
 
-/* Prepare a 16 bit dummy audio frame of 'frame_size' samples and
- * 'nb_channels' channels. */
+void avcodecWrapper::open_audio_file(InputSoundEffect &isfx)
+{
+    int ret;
+    AVCodec *dec;
+
+    if ((ret = avformat_open_input(&isfx.fmt_ctx, isfx.sfx.getFilename().toUtf8(), NULL, NULL)) < 0) {
+        throw libavException("Cannot open audio input file " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
+    }
+
+    if ((ret = avformat_find_stream_info(isfx.fmt_ctx, NULL)) < 0) {
+        throw libavException("Cannot find audio stream information for " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
+    }
+
+    /* select the audio stream */
+    ret = av_find_best_stream(isfx.fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &dec, 0);
+    if (ret < 0) {
+        throw libavException("Cannot find an audio stream in the input file " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
+    }
+    isfx.audio_stream_index = ret;
+    isfx.dec_ctx = isfx.fmt_ctx->streams[isfx.audio_stream_index]->codec;
+    av_opt_set_int(isfx.dec_ctx, "refcounted_frames", 1, 0);
+
+    /* init the audio decoder */
+    if ((ret = avcodec_open2(isfx.dec_ctx, dec, NULL)) < 0) {
+        throw libavException("Cannot open audio decoder for the input file " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
+    }
+
+    isfx.frame = av_frame_alloc();
+}
+
 AVFrame *avcodecWrapper::get_audio_frame(OutputStream *ost)
 {
     AVFrame *frame = ost->tmp_frame;
     int j, i, v;
     int16_t *q = (int16_t*)frame->data[0];
 
-    /* check if we want to generate more frames */
-    AVRational oneOverOne;
-    oneOverOne.num = 1;
-    oneOverOne.den = 1;
-    if (av_compare_ts(ost->next_pts, ost->enc->time_base,
-                      _streamDuration, oneOverOne) >= 0)
-        return NULL;
+    // Load up the data from whatever file it is that we are reading from right now...
+    AVPacket packet0, packet;
+    packet0.data = NULL;
+    packet.data = NULL;
+
+    // In the long run we need to actually combine multiple files, potentially at overlapping
+    // time ranges. So we need to see if this frame is supposed to include samples from each
+    // of our files, and if so, to read them in.
+
+    // For now, just load the first one...
+    InputSoundEffect isfx = _soundEffectStreams.first();
+
+    int numSamplesRead = 0;
+    int ret;
+    while (numSamplesRead < frame->nb_samples) {
+        if (!packet0.data) {
+            if ((ret = av_read_frame(isfx.fmt_ctx, &packet)) < 0)
+                break;
+            packet0 = packet;
+            // Now what?
+        }
+    }
 
     for (j = 0; j <frame->nb_samples; j++) {
         v = (int)(sin(ost->t) * 10000);
@@ -646,19 +689,28 @@ void avcodecWrapper::wrapMain()
         have_video = 1;
         encode_video = 1;
     }
-    if (fmt->audio_codec != AV_CODEC_ID_NONE) {
-        add_stream(&audio_st, oc, &audio_codec, fmt->audio_codec);
-        have_audio = 1;
-        encode_audio = 1;
-    }
+    // For now, no audio
+    //if (fmt->audio_codec != AV_CODEC_ID_NONE) {
+    //    add_stream(&audio_st, oc, &audio_codec, fmt->audio_codec);
+    //    have_audio = 1;
+    //    encode_audio = 1;
+    //}
 
     /* Now that all the parameters are set, we can open the audio and
      * video codecs and allocate the necessary encode buffers. */
-    if (have_video)
+    if (have_video) {
         open_video(oc, video_codec, &video_st, opt);
+    }
 
-    if (have_audio)
+    if (have_audio) {
+        for (auto s = _soundEffects.begin(); s != _soundEffects.end(); ++s) {
+            InputSoundEffect isfx;
+            isfx.sfx = *s;
+            open_audio_file(isfx);
+        }
+
         open_audio(oc, audio_codec, &audio_st, opt);
+    }
 
     av_dump_format(oc, 0, _outputFilename.toUtf8(), 1);
 

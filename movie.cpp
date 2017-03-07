@@ -118,6 +118,11 @@ void Movie::deleteLastFrame ()
     }
 }
 
+QString Movie::getMostRecentFrame () const
+{
+    return getImageFilename (_numberOfFrames-1);
+}
+
 void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
 {
     if (_currentFrame != frameNumber && frameNumber < _numberOfFrames) {

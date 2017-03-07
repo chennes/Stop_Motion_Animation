@@ -21,6 +21,24 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     _viewFinderSettings.setResolution(resolution);
     on_startNewMovieButton_clicked();
     adjustSize();
+    _overlayEffect = new PreviousFrameOverlayEffect();
+    ui->cameraViewfinder->setGraphicsEffect(_overlayEffect);
+    _overlayEffect->setEnabled(false);
+
+    // Grab the x and z keys from everything that might conceivably get them:
+    ui->addToPreviousButton->installEventFilter(this);
+    ui->backgroundMusicButton->installEventFilter(this);
+    ui->cameraViewfinder->installEventFilter(this);
+    ui->createFinalMovieButton->installEventFilter(this);
+    ui->deletePhotoButton->installEventFilter(this);
+    ui->helpButton->installEventFilter(this);
+    ui->horizontalSlider->installEventFilter(this);
+    ui->importButton->installEventFilter(this);
+    ui->playButton->installEventFilter(this);
+    ui->settingButton->installEventFilter(this);
+    ui->soundEffectButton->installEventFilter(this);
+    ui->startNewMovieButton->installEventFilter(this);
+    ui->takePhotoButton->installEventFilter(this);
 }
 
 StopMotionAnimation::~StopMotionAnimation()
@@ -31,6 +49,7 @@ StopMotionAnimation::~StopMotionAnimation()
     if (_camera) {
         delete _camera;
     }
+    delete _overlayEffect;
     delete ui;
 }
 
@@ -212,6 +231,14 @@ void StopMotionAnimation::on_takePhotoButton_clicked()
         // Get the frame out of the camera:
         _movie->addFrame (_camera);
 
+        // Update the overlay effect:
+        try {
+            _overlayEffect->setPreviousFrame(_movie->getMostRecentFrame());
+        } catch (PreviousFrameOverlayEffect::LoadFailedException &e) {
+            //_errorDialog.showMessage("Failed to load the previous frame into the overlay layer.");
+            _errorDialog.showMessage(e.message());
+        }
+
         // Increment the counters
         ui->numberOfFramesLabel->setText (QString::number(_movie->getNumberOfFrames()));
         ui->horizontalSlider->setRange(1,_movie->getNumberOfFrames()+1); // The +1 is because the very last "frame" is the live view
@@ -327,3 +354,99 @@ void StopMotionAnimation::setState (State newState)
         break;
     }
 }
+
+
+
+void StopMotionAnimation::keyPressEvent(QKeyEvent * e)
+{
+    if (e->key() == 'x') {
+        if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
+            _keydownState = KeydownState::OVERLAY_FRAME;
+        }
+    } else if (e->key() == 'z') {
+        if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
+            _keydownState = KeydownState::PREVIOUS_FRAME;
+        }
+    }
+    if (_keydownState == KeydownState::OVERLAY_FRAME) {
+        _overlayEffect->setEnabled(true);
+    } else {
+        _overlayEffect->setEnabled(false);
+    }
+    QDialog::keyPressEvent(e);
+}
+
+bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
+{
+    bool handled = false;
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_X) {
+            // Special X handling
+            if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
+                _keydownState = KeydownState::OVERLAY_FRAME;
+            }
+            handled = true;
+        } else if (keyEvent->key() == Qt::Key_Z) {
+            // Special Z handling
+            if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
+                _keydownState = KeydownState::PREVIOUS_FRAME;
+            }
+            handled = true;
+        } else {
+            handled = false;
+        }
+    } else if (event->type() == QEvent::KeyRelease) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_X) {
+            // Special X handling
+            if (_state == State::LIVE && _keydownState == KeydownState::OVERLAY_FRAME) {
+                _keydownState = KeydownState::NONE;
+            }
+            handled = true;
+        } else if (keyEvent->key() == Qt::Key_Z) {
+            // Special Z handling
+            if (_state == State::LIVE && _keydownState == KeydownState::PREVIOUS_FRAME) {
+                _keydownState = KeydownState::NONE;
+            }
+            handled = true;
+        } else {
+            handled = false;
+        }
+    }
+    if (_keydownState == KeydownState::OVERLAY_FRAME) {
+        _overlayEffect->setEnabled(true);
+        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::BLEND);
+    } else if (_keydownState == KeydownState::PREVIOUS_FRAME) {
+        _overlayEffect->setEnabled(true);
+        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::PREVIOUS);
+    } else {
+        _overlayEffect->setEnabled(false);
+    }
+    return handled;
+}
+
+
+void StopMotionAnimation::keyReleaseEvent(QKeyEvent * e)
+{
+    if (e->key() == 'x') {
+        if (_keydownState == KeydownState::OVERLAY_FRAME) {
+            _keydownState = KeydownState::NONE;
+        }
+    } else if (e->key() == 'z') {
+        if (_keydownState == KeydownState::PREVIOUS_FRAME) {
+            _keydownState = KeydownState::NONE;
+        }
+    }
+    if (_keydownState == KeydownState::OVERLAY_FRAME) {
+        _overlayEffect->setEnabled(true);
+        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::BLEND);
+    } else if (_keydownState == KeydownState::PREVIOUS_FRAME) {
+        _overlayEffect->setEnabled(true);
+        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::PREVIOUS);
+    } else {
+        _overlayEffect->setEnabled(false);
+    }
+    QDialog::keyReleaseEvent(e);
+}
+

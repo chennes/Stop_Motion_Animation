@@ -27,6 +27,7 @@ public:
     void setInPoint (double t);
     void setOutPoint (double t);
 
+    QString getFilename () const;
     double getStartTime () const;
     double getInPoint () const;
     double getOutPoint () const;

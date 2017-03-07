@@ -10,6 +10,7 @@
 #include "settingsdialog.h"
 #include "backgroundmusicdialog.h"
 #include "savefinalmoviedialog.h"
+#include "previousframeoverlayeffect.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -59,7 +60,14 @@ private:
 
 protected:
     enum class State {LIVE, PLAYBACK, STILL};
+    enum class KeydownState {NONE, OVERLAY_FRAME, PREVIOUS_FRAME};
     void setState (State newState);
+
+    virtual bool eventFilter (QObject *object, QEvent *event);
+
+    virtual void keyPressEvent(QKeyEvent * e);
+    virtual void keyReleaseEvent(QKeyEvent * e);
+
 
 private:
     QCamera *_camera;
@@ -67,6 +75,9 @@ private:
     QErrorMessage _errorDialog;
     std::unique_ptr<Movie> _movie;
     State _state;
+    KeydownState _keydownState;
+
+    PreviousFrameOverlayEffect *_overlayEffect;
 
     HelpDialog _help;
     SettingsDialog _settings;

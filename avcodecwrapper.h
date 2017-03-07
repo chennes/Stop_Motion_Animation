@@ -56,6 +56,16 @@ private:
         struct SwrContext *swr_ctx;
     };
 
+    // A utility wrapper around an input sound effect
+    class InputSoundEffect {
+    public:
+        SoundEffect sfx;
+        AVFormatContext *fmt_ctx;
+        AVCodecContext *dec_ctx;
+        AVFrame *frame;
+        int audio_stream_index;
+    };
+
 
 private:
 
@@ -67,6 +77,7 @@ private:
     AVFrame *alloc_audio_frame(AVSampleFormat sample_fmt,
                                uint64_t channel_layout,
                                int sample_rate, int nb_samples);
+    void open_audio_file(InputSoundEffect &sfx);
     void open_audio(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg);
     AVFrame *get_audio_frame(OutputStream *ost);
     int write_audio_frame(AVFormatContext *oc, OutputStream *ost);
@@ -96,6 +107,9 @@ private:
     int       dst_samples_linesize;
     int       dst_samples_size;
     struct SwrContext *swr_ctx;
+
+    // Input sound effect streams
+    QList<InputSoundEffect> _soundEffectStreams;
 
     // Video output variables
     AVFrame *frame;
