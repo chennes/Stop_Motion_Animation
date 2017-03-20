@@ -50,7 +50,7 @@ void PreviousFrameOverlayEffect::draw(QPainter *painter)
     QPainter overlaidPainter (&overlaidImage);
     overlaidPainter.setCompositionMode(QPainter::CompositionMode_Source);
     if (_mode == Mode::BLEND) {
-        overlaidPainter.drawPixmap(0,0,640,480, pixmap);
+        overlaidPainter.drawPixmap(0,0,640,480,pixmap);
         overlaidPainter.setCompositionMode(QPainter::CompositionMode_Screen);
     }
     overlaidPainter.drawPixmap(0,0,640,480, _previousFrame);

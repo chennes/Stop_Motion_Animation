@@ -5,7 +5,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QSettings>
 #include <QImageEncoderControl>
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
@@ -16,7 +15,7 @@
 #include <sstream>
 
 #include "avcodecwrapper.h"
-#include "settingsdialog.h"
+#include "settings.h"
 
 const qint32 Movie::DEFAULT_FPS (15);
 
@@ -27,18 +26,20 @@ Movie::Movie(const QString &name) :
     _currentFrame (0),
     _computerSpeedAdjustment (-2)
 {
-    QSettings settings;
+    Settings settings;
 
-    QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
+    int w = settings.Get("settings/imageWidth").toInt();
+    int h = settings.Get("settings/imageHeight").toInt();
+    QSize resolution (w,h);
     _encoderSettings.setResolution(resolution);
 
     // Note that this doesn't currently work: the cameras we are using ONLY support saving to JPG files
     // directly, so if a different format is required we'd have to convert it. We don't.
-    QString format = settings.value("settings/imageFileType","JPG").toString();
+    QString format = settings.Get("settings/imageFileType").toString();
     //_encoderSettings.setCodec(format);
     _encoderSettings.setCodec("JPG"); // This at least lets us prepare for a future feature that DOES support other formats
 
-    qint32 framesPerSecond = settings.value("settings/framesPerSecond",Movie::DEFAULT_FPS).toInt();
+    qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     _framesPerSecond = framesPerSecond;
 
     // Set up libavcodec...
@@ -51,8 +52,8 @@ Movie::~Movie ()
     // directory we would have used to store those things.
     if (_numberOfFrames == 0) {
         QDir d;
-        QSettings settings;
-        QString imageStorageLocation = settings.value("settings/imageStorageLocation","Image Files/").toString();
+        Settings settings;
+        QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
         if (d.exists(imageStorageLocation)) {
             d.cd (imageStorageLocation);
             if (d.exists(_name)) {
@@ -276,7 +277,7 @@ bool Movie::load (const QString &filename)
 
 void Movie::encodeToFile (const QString &filename, const QString &title, const QString &credits) const
 {
-    QSettings settings;
+    Settings settings;
     avcodecWrapper encoder;
 
     // Video frames first:
@@ -294,7 +295,9 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     foreach (const SoundEffect &sfx, _soundEffects) {
         encoder.AddAudioFile(sfx);
     }
-    QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
+    int w = settings.Get("settings/imageWidth").toInt();
+    int h = settings.Get("settings/imageHeight").toInt();
+    QSize resolution (w,h);
 
     // Consider threading this call if it turns out to take a signficant amount of time...
     try {
@@ -307,11 +310,9 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
 
 void Movie::CreatePreTitle(avcodecWrapper &encoder) const
 {
-    QSettings settings;
-    QString filename = settings.value("settings/preTitleScreenLocation",
-                                      SettingsDialog::getDefault("settings/preTitleScreenLocation")).toString();
-    double duration = settings.value("settings/preTitleScreenDuration",
-                                     SettingsDialog::getDefault("settings/preTitleScreenDuration")).toDouble();
+    Settings settings;
+    QString filename = settings.Get("settings/preTitleScreenLocation").toString();
+    double duration = settings.Get("settings/preTitleScreenDuration").toDouble();
     if (duration > 0 && filename != "") {
         QFile preTitleScreenCheck (filename);
         if (!preTitleScreenCheck.exists()) {
@@ -328,11 +329,12 @@ void Movie::CreatePreTitle(avcodecWrapper &encoder) const
 
 void Movie::CreateTitle(avcodecWrapper &encoder, const QString &title) const
 {
-    QSettings settings;
-    double duration = settings.value("settings/titleScreenDuration",
-                                     SettingsDialog::getDefault("settings/titleScreenDuration")).toDouble();
+    Settings settings;
+    double duration = settings.Get("settings/titleScreenDuration").toDouble();
     if (duration > 0 && title != "") {
-        QSize resolution = settings.value("settings/resolution",SettingsDialog::getDefault("settings/resolution")).toSize();
+        int w = settings.Get("settings/imageWidth").toInt();
+        int h = settings.Get("settings/imageHeight").toInt();
+        QSize resolution (w,h);
         QGraphicsScene scene;
         scene.setSceneRect(0,0,resolution.width(),resolution.height());
         scene.setBackgroundBrush(Qt::black);
@@ -365,16 +367,16 @@ void Movie::CreateTitle(avcodecWrapper &encoder, const QString &title) const
 
 void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
 {   
-    QSettings settings;
-    double duration = settings.value("settings/creditsDuration",
-                                     SettingsDialog::getDefault("settings/creditsDuration")).toDouble();
+    Settings settings;
+    double duration = settings.Get("settings/creditsDuration").toDouble();
     if (duration > 0 && credits != "") {
-        QSize resolution = settings.value("settings/resolution",SettingsDialog::getDefault("settings/resolution")).toSize();
+        int w = settings.Get("settings/imageWidth").toInt();
+        int h = settings.Get("settings/imageHeight").toInt();
         QGraphicsScene scene;
-        scene.setSceneRect(0,0,resolution.width(),resolution.height());
+        scene.setSceneRect(0,0,w,h);
         scene.setBackgroundBrush(Qt::black);
         QFont creditsFont;
-        creditsFont.setPixelSize (int(0.05 * (double)resolution.height()));
+        creditsFont.setPixelSize (int(0.05 * (double)h));
 
         QGraphicsTextItem *titleTextItem = scene.addText ("", creditsFont);
 
@@ -387,7 +389,7 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
         QDate today;
         titleTextItem->setHtml("<center><h1>Credits</h1></center><p>" + htmlCredits + "</p><br/><p>Created " + today.toString() + " using Pioneer Library System's Stop Motion Creator software.</p>");
         titleTextItem->setDefaultTextColor(Qt::white);
-        titleTextItem->setTextWidth(0.8*resolution.width());
+        titleTextItem->setTextWidth(0.8*w);
 
         QRectF textSize = titleTextItem->boundingRect();
 
@@ -396,8 +398,8 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
 
         // See if we need to scroll the credits:
         qreal distancePerFrame = 0;
-        if (textSize.height() > resolution.height()) {
-            distancePerFrame = qreal(textSize.height() - resolution.height()) / (qreal)(numberOfFrames-(2*numberOfStillFrames));
+        if (textSize.height() > h) {
+            distancePerFrame = qreal(textSize.height() - h) / (qreal)(numberOfFrames-(2*numberOfStillFrames));
         }
 
         qreal verticalPosition = 0;
@@ -405,10 +407,10 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
             if (frame > numberOfStillFrames && frame < numberOfFrames-numberOfStillFrames) {
                 verticalPosition -= distancePerFrame;
             }
-            QPointF textPosition (0.1 * resolution.width(),verticalPosition);
+            QPointF textPosition (0.1 * w,verticalPosition);
             titleTextItem->setPos(textPosition);
 
-            QImage img(resolution.width(), resolution.height(), QImage::Format_ARGB32);
+            QImage img(w, h, QImage::Format_ARGB32);
             QPainter painter;
             painter.begin(&img);
             scene.render(&painter);
@@ -424,8 +426,8 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
 QString Movie::getBaseFilename () const
 {
     QDir d;
-    QSettings settings;
-    QString imageStorageLocation = settings.value("settings/imageStorageLocation","Image Files/").toString();
+    Settings settings;
+    QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
 
     if (!d.exists(imageStorageLocation)) {
         d.mkdir(imageStorageLocation);

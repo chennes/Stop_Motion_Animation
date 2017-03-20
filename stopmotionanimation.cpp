@@ -5,19 +5,21 @@
 #include <QtMultimedia/QCameraInfo>
 #include <QKeyEvent>
 #include <QFileDialog>
-#include <QSettings>
+#include "settings.h"
 
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
-    QDialog(parent),
+    QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
     _camera(NULL)
 {
     ui->setupUi(this);
-    this->setWindowTitle("PLS Stop Motion Creator");
+    this->setWindowTitle(QCoreApplication::applicationName());
     connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
-    QSettings settings;
-    QSize resolution = settings.value("settings/resolution",QSize(640,480)).toSize();
+    Settings settings;
+    int w = settings.Get("settings/imageWidth").toInt();
+    int h = settings.Get("settings/imageHeight").toInt();
+    QSize resolution (w,h);
     _viewFinderSettings.setResolution(resolution);
     on_startNewMovieButton_clicked();
     adjustSize();
@@ -57,29 +59,20 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
 {
     // Generate a new timestamp
     QDateTime local(QDateTime::currentDateTime());
-    QSettings settings;
-    QString imageFilenameFormat = settings.value("settings/imageFilenameFormat","yyyy-MM-dd-hh-mm-ss").toString();
+    Settings settings;
+    QString imageFilenameFormat = settings.Get("settings/imageFilenameFormat").toString();
     QString timestamp = local.toString (imageFilenameFormat);
     if (timestamp.length() == 0) {
         timestamp = local.toString ("yyyy-MM-dd-hh-mm-ss");
     }
-    // Make sure it's a valid-ish filename
+    // Make sure it's a valid-ish filename by removing the most common invalid characters
     timestamp.replace('/',"-");
     timestamp.replace('\\',"-");
+    timestamp.replace('*',"-");
+    timestamp.replace(':',"-");
 
     // Update the label
     ui->movieNameLabel->setText(timestamp);
-
-    // Set frame counting widgets to zero and disable everything but the "Take Photo" button
-    ui->frameNumberLabel->setText ("0");
-    ui->numberOfFramesLabel->setText ("0");
-
-    ui->playButton->setDisabled(true);
-    ui->horizontalSlider->setDisabled(true);
-    ui->deletePhotoButton->setDisabled(true);
-    ui->soundEffectButton->setDisabled(true);
-    ui->backgroundMusicButton->setDisabled(true);
-    ui->createFinalMovieButton->setDisabled(true);
 
     if (_movie) {
         _movie->save();
@@ -91,7 +84,7 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
     _movie = std::unique_ptr<Movie> (new Movie (timestamp));
 
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-    QString requestedCamera = settings.value("settings/camera","Always use default").toString();
+    QString requestedCamera = settings.Get("settings/camera").toString();
 
     if (!cameras.empty()) {
 
@@ -126,6 +119,7 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
         ui->takePhotoButton->setDisabled(true);
     }
 
+    updateInterfaceForNewFrame();
     adjustSize();
 }
 
@@ -133,31 +127,15 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open Movie File"), "Image Files", tr("Stop-motion movie files (*.json);;All files (*.*)"));
-    bool success = _movie->load(fileName);
-    if (!success) {
-        _errorDialog.showMessage("Could not load the movie file " + fileName);
-    } else {
-        qint32 numberOfFrames = _movie->getNumberOfFrames();
-        ui->movieNameLabel->setText(_movie->getName());
-        ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
-        ui->horizontalSlider->setMaximum(numberOfFrames+1);
-        ui->horizontalSlider->setValue(numberOfFrames+1);
-        if (numberOfFrames > 0) {
-            ui->playButton->setDisabled(false);
-            ui->horizontalSlider->setDisabled(false);
-            ui->deletePhotoButton->setDisabled(false);
-            ui->soundEffectButton->setDisabled(false);
-            ui->backgroundMusicButton->setDisabled(false);
-            ui->createFinalMovieButton->setDisabled(false);
+
+    if (fileName.length() > 0) {
+        bool success = _movie->load(fileName);
+        if (!success) {
+            _errorDialog.showMessage("Could not load the movie file " + fileName);
         } else {
-            ui->playButton->setDisabled(true);
-            ui->horizontalSlider->setDisabled(true);
-            ui->deletePhotoButton->setDisabled(true);
-            ui->soundEffectButton->setDisabled(true);
-            ui->backgroundMusicButton->setDisabled(true);
-            ui->createFinalMovieButton->setDisabled(true);
+            updateInterfaceForNewFrame();
+            setState(State::LIVE);
         }
-        setState(State::LIVE);
     }
 }
 
@@ -182,30 +160,20 @@ void StopMotionAnimation::saveFinalMovieAccepted()
 void StopMotionAnimation::on_importButton_clicked()
 {
     QString name = QFileDialog::getExistingDirectory();
-    QSettings settings;
-    QString imageFileType = settings.value("settings/imageFileType","JPG").toString().toLower();
+    Settings settings;
+    QString imageFileType = settings.Get("settings/imageFileType").toString().toLower();
     QDir directory (name, "*."+imageFileType);
     QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
     foreach (const QString &filename, fileList) {
         try {
             _movie->importFrame(name + "/" + filename);
-            qint32 numberOfFrames = _movie->getNumberOfFrames();
-            ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
-            ui->horizontalSlider->setMaximum(numberOfFrames+1);
-            ui->horizontalSlider->setValue(numberOfFrames+1);
+            updateInterfaceForNewFrame();
         } catch (Movie::ImportFailedException &) {
             _errorDialog.showMessage("Failed to import the file " + filename);
             return;
         }
     }
-    if (_movie->getNumberOfFrames() > 0) {
-        ui->playButton->setDisabled(false);
-        ui->horizontalSlider->setDisabled(false);
-        ui->deletePhotoButton->setDisabled(false);
-        ui->soundEffectButton->setDisabled(false);
-        ui->backgroundMusicButton->setDisabled(false);
-        ui->createFinalMovieButton->setDisabled(false);
-    }
+    updateInterfaceForNewFrame();
 }
 
 void StopMotionAnimation::on_settingButton_clicked()
@@ -239,43 +207,20 @@ void StopMotionAnimation::on_takePhotoButton_clicked()
             _errorDialog.showMessage(e.message());
         }
 
-        // Increment the counters
-        ui->numberOfFramesLabel->setText (QString::number(_movie->getNumberOfFrames()));
-        ui->horizontalSlider->setRange(1,_movie->getNumberOfFrames()+1); // The +1 is because the very last "frame" is the live view
-        ui->horizontalSlider->setSliderPosition(_movie->getNumberOfFrames()+1);
-
-        // If the various playback widgets were disabled, enable them
-        ui->playButton->setDisabled(false);
-        ui->horizontalSlider->setDisabled(false);
-        ui->deletePhotoButton->setDisabled(false);
-        ui->soundEffectButton->setDisabled(false);
-        ui->backgroundMusicButton->setDisabled(false);
-        ui->createFinalMovieButton->setDisabled(false);
+        updateInterfaceForNewFrame();
     }
 }
 
 void StopMotionAnimation::on_deletePhotoButton_clicked()
 {
     _movie->deleteLastFrame();
-
-    ui->numberOfFramesLabel->setText (QString::number(_movie->getNumberOfFrames()));
-    ui->horizontalSlider->setRange(1,_movie->getNumberOfFrames()+1); // The +1 is because the very last "frame" is the live view
-    ui->horizontalSlider->setSliderPosition(_movie->getNumberOfFrames()+1);
-
-    if (_movie->getNumberOfFrames() == 0) {
-        ui->playButton->setDisabled(true);
-        ui->horizontalSlider->setDisabled(true);
-        ui->deletePhotoButton->setDisabled(true);
-        ui->soundEffectButton->setDisabled(true);
-        ui->backgroundMusicButton->setDisabled(true);
-        ui->createFinalMovieButton->setDisabled(true);
-    }
+   updateInterfaceForNewFrame();
 }
 
 void StopMotionAnimation::on_backgroundMusicButton_clicked()
 {
-    QSettings settings;
-    qint32 framesPerSecond = settings.value("settings/framesPerSecond",SettingsDialog::getDefault("settings/framesPerSecond")).toInt();
+    Settings settings;
+    qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
     _backgroundMusic.show();
     // Connect its slot to set the music
@@ -357,6 +302,41 @@ void StopMotionAnimation::setState (State newState)
 
 
 
+void StopMotionAnimation::updateInterfaceForNewFrame()
+{
+    int numberOfFrames = _movie->getNumberOfFrames();
+    ui->numberOfFramesLabel->setText (QString::number(numberOfFrames));
+    ui->horizontalSlider->setRange(1,numberOfFrames+1); // The +1 is because the very last "frame" is the live view
+    ui->horizontalSlider->setSliderPosition(numberOfFrames+1);
+
+    Settings settings;
+    qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
+    double movieLength = (double)numberOfFrames / (double)framesPerSecond;
+    if (movieLength < 60) {
+        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(movieLength*1000).toString("s.zzz") + " seconds");
+    } else {
+        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(movieLength*1000).toString("m:ss.zzz"));
+    }
+
+    if (numberOfFrames > 0) {
+        ui->playButton->setDisabled(false);
+        ui->horizontalSlider->setDisabled(false);
+        ui->deletePhotoButton->setDisabled(false);
+        ui->soundEffectButton->setDisabled(false);
+        ui->backgroundMusicButton->setDisabled(false);
+        ui->createFinalMovieButton->setDisabled(false);
+    } else {
+        ui->playButton->setDisabled(true);
+        ui->horizontalSlider->setDisabled(true);
+        ui->deletePhotoButton->setDisabled(true);
+        ui->soundEffectButton->setDisabled(true);
+        ui->backgroundMusicButton->setDisabled(true);
+        ui->createFinalMovieButton->setDisabled(true);
+    }
+}
+
+
+
 void StopMotionAnimation::keyPressEvent(QKeyEvent * e)
 {
     if (e->key() == 'x') {
@@ -373,7 +353,7 @@ void StopMotionAnimation::keyPressEvent(QKeyEvent * e)
     } else {
         _overlayEffect->setEnabled(false);
     }
-    QDialog::keyPressEvent(e);
+    QMainWindow::keyPressEvent(e);
 }
 
 bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
@@ -447,6 +427,6 @@ void StopMotionAnimation::keyReleaseEvent(QKeyEvent * e)
     } else {
         _overlayEffect->setEnabled(false);
     }
-    QDialog::keyReleaseEvent(e);
+    QMainWindow::keyReleaseEvent(e);
 }
 

@@ -50,7 +50,7 @@ private:
         AVFrame *frame;
         AVFrame *tmp_frame;
 
-        float t, tincr, tincr2;
+        float t, tincr;
 
         struct SwsContext *sws_ctx;
         struct SwrContext *swr_ctx;
@@ -98,7 +98,7 @@ private:
     const AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV420P;
 
     // Audio output variables
-    float t, tincr, tincr2;
+    AVFrame *emptyFrame;
     uint8_t **src_samples_data;
     int       src_samples_linesize;
     int       src_nb_samples;

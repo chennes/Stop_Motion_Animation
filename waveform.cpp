@@ -2,8 +2,8 @@
 
 #include "utils.h"
 #include <iostream>
-#include <QSettings>
 #include <QMouseEvent>
+#include "settings.h"
 #include "settingsdialog.h"
 
 Waveform::Waveform(QWidget *parent) :
@@ -173,16 +173,13 @@ void Waveform::UpdateSelectionRectangles ()
     if (_selectionLength <= 0) {
         return;
     }
-    QSettings settings;
+    Settings settings;
     // We actually have four different rectangles to draw
     // for the selection, representing the durations for
     // the pre-title, title, movie, and credits regions
-    double preTitleDuration = settings.value("settings/preTitleScreenDuration",
-                                             SettingsDialog::getDefault("settings/preTitleScreenDuration")).toDouble();
-    double titleDuration = settings.value("settings/titleScreenDuration",
-                                             SettingsDialog::getDefault("settings/titleScreenDuration")).toDouble();
-    double creditsDuration = settings.value("settings/creditsDuration",
-                                             SettingsDialog::getDefault("settings/creditsDuration")).toDouble();
+    double preTitleDuration = settings.Get("settings/preTitleScreenDuration").toDouble();
+    double titleDuration = settings.Get("settings/titleScreenDuration").toDouble();
+    double creditsDuration = settings.Get("settings/creditsDuration").toDouble();
 
     // Convert all these numbers to pixels:
     _preTitlePixels = preTitleDuration/(_totalLength/1000.0) * this->width();

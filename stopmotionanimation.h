@@ -1,7 +1,7 @@
 #ifndef STOPMOTIONANIMATION_H
 #define STOPMOTIONANIMATION_H
 
-#include <QDialog>
+#include <QMainWindow>
 #include <QErrorMessage>
 #include <QtMultimedia/QCamera>
 #include "movie.h"
@@ -16,7 +16,7 @@ namespace Ui {
 class StopMotionAnimation;
 }
 
-class StopMotionAnimation : public QDialog
+class StopMotionAnimation : public QMainWindow
 {
     Q_OBJECT
 
@@ -54,6 +54,8 @@ private slots:
     void saveFinalMovieAccepted();
 
     void setBackgroundMusic();
+
+    void updateInterfaceForNewFrame();
 
 private:
     Ui::StopMotionAnimation *ui;

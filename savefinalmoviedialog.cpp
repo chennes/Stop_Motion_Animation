@@ -1,8 +1,9 @@
 #include "savefinalmoviedialog.h"
 #include "ui_savefinalmoviedialog.h"
 
+#include "settings.h"
+
 #include <QFileDialog>
-#include <QSettings>
 
 SaveFinalMovieDialog::SaveFinalMovieDialog(QWidget *parent) :
     QDialog(parent),
@@ -20,8 +21,8 @@ void SaveFinalMovieDialog::reset(const QString &name)
 {
     ui->movieSaveLocationLabel->setText(name);
     ui->creditsPlainTextEdit->clear();
-    QSettings settings;
-    QString imageStorageLocation = settings.value("settings/imageStorageLocation","Image Files/").toString();
+    Settings settings;
+    QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
     ui->movieSaveLocationLabel->setText(imageStorageLocation+"/" + name + ".mp4");
 }
 

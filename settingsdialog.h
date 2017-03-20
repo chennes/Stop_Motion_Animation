@@ -33,8 +33,6 @@ public:
      */
     void store ();
 
-    static QVariant getDefault (const QString &key);
-
 protected:
     virtual void closeEvent(QCloseEvent *event);
 
@@ -51,8 +49,6 @@ private slots:
 private:
     Ui::SettingsDialog *ui;
     FilenameConstructionDialog _filenameConstructionHelp;
-
-    static QMap<QString, QVariant> SETTING_DEFAULTS;
 };
 
 #endif // SETTINGSDIALOG_H

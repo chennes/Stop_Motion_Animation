@@ -33,7 +33,10 @@ SOURCES += main.cpp\
     utils.cpp \
     waveform.cpp \
     savefinalmoviedialog.cpp \
-    previousframeoverlayeffect.cpp
+    previousframeoverlayeffect.cpp \
+    frameeditor.cpp \
+    frame.cpp \
+    settings.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -46,14 +49,18 @@ HEADERS  += stopmotionanimation.h \
     utils.h \
     waveform.h \
     savefinalmoviedialog.h \
-    previousframeoverlayeffect.h
+    previousframeoverlayeffect.h \
+    frameeditor.h \
+    frame.h \
+    settings.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
     settingsdialog.ui \
     filenameconstructiondialog.ui \
     backgroundmusicdialog.ui \
-    savefinalmoviedialog.ui
+    savefinalmoviedialog.ui \
+    frameeditor.ui
 
 RESOURCES += \
     resources.qrc

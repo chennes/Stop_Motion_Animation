@@ -1,13 +1,11 @@
 #include "settingsdialog.h"
 #include "ui_settingsdialog.h"
-#include <QSettings>
+#include "settings.h"
 #include <QImageWriter>
 #include <QCameraInfo>
 #include <QFileDialog>
 #include <QCloseEvent>
 #include <QMessageBox>
-
-QMap<QString, QVariant> SettingsDialog::SETTING_DEFAULTS;
 
 SettingsDialog::SettingsDialog(QWidget *parent) :
     QDialog(parent),
@@ -58,10 +56,10 @@ SettingsDialog::~SettingsDialog()
 
 void SettingsDialog::load ()
 {
-    QSettings settings;
+    Settings settings;
 
     // File type
-    QString imageFileType = settings.value("settings/imageFileType",getDefault("settings/imageFileType")).toString();
+    QString imageFileType = settings.Get("settings/imageFileType").toString();
     int fileTypeIndex = ui->fileTypeCombo->findText(imageFileType.toUpper());
     if (fileTypeIndex != -1) {
         ui->fileTypeCombo->setCurrentIndex (fileTypeIndex);
@@ -70,7 +68,7 @@ void SettingsDialog::load ()
     }
 
     // Frames per second
-    qint32 framesPerSecond = settings.value("settings/framesPerSecond",getDefault("settings/framesPerSecond")).toInt();
+    qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     int fpsIndex = ui->fpsCombo->findData(framesPerSecond);
     if (fpsIndex > -1) {
         ui->fpsCombo->setCurrentIndex(fpsIndex);
@@ -79,15 +77,15 @@ void SettingsDialog::load ()
     }
 
     // Image storage location
-    QString imageStorageLocation = settings.value("settings/imageStorageLocation",getDefault("settings/imageStorageLocation")).toString();
+    QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
     ui->imageLocationLineEdit->setText(imageStorageLocation);
 
     // Image filename format
-    QString imageFilenameFormat = settings.value("settings/imageFilenameFormat",getDefault("settings/imageFilenameFormat")).toString();
+    QString imageFilenameFormat = settings.Get("settings/imageFilenameFormat").toString();
     ui->filenameFormatLineEdit->setText(imageFilenameFormat);
 
     // Camera (what is stored is the description string from the QCamera object)
-    QString cameraString = settings.value("settings/camera",getDefault("settings/camera")).toString();
+    QString cameraString = settings.Get("settings/camera").toString();
     int cameraIndex = ui->fileTypeCombo->findText(cameraString.toUpper());
     if (cameraIndex != -1) {
         ui->fileTypeCombo->setCurrentIndex (cameraIndex);
@@ -96,7 +94,9 @@ void SettingsDialog::load ()
     }
 
     // Resolution
-    QSize resolution = settings.value("settings/resolution",getDefault("settings/resolution")).toSize();
+    int w = settings.Get("settings/imageWidth").toInt();
+    int h = settings.Get("settings/imageHeight").toInt();
+    QSize resolution (w,h);
     int resolutionIndex = ui->resolutionCombo->findData (resolution);
     if (resolutionIndex > -1) {
         ui->resolutionCombo->setCurrentIndex(resolutionIndex);
@@ -105,70 +105,74 @@ void SettingsDialog::load ()
     }
 
     // Pre-title screen
-    QString titleScreenLocation = settings.value("settings/preTitleScreenLocation",getDefault("settings/preTitleScreenLocation")).toString();
+    QString titleScreenLocation = settings.Get("settings/preTitleScreenLocation").toString();
     ui->preTitleScreenFileLineEdit->setText(titleScreenLocation);
 
     // Pre-title duration
-    double preTitleScreenDuration = settings.value("settings/preTitleScreenDuration",getDefault("settings/preTitleScreenDuration")).toDouble();
+    double preTitleScreenDuration = settings.Get("settings/preTitleScreenDuration").toDouble();
     ui->preTitleDurationSpinbox->setValue(preTitleScreenDuration);
 
     // Title duration
-    double titleScreenDuration = settings.value("settings/titleScreenDuration",getDefault("settings/titleScreenDuration")).toDouble();
+    double titleScreenDuration = settings.Get("settings/titleScreenDuration").toDouble();
     ui->titleDurationSpinbox->setValue(titleScreenDuration);
 
     // Credits duration
-    double creditsDuration = settings.value("settings/creditsDuration",getDefault("settings/creditsDuration")).toDouble();
+    double creditsDuration = settings.Get("settings/creditsDuration").toDouble();
     ui->creditsDurationSpinbox->setValue(creditsDuration);
 }
 
 void SettingsDialog::store ()
 {
-    QSettings settings;
+    Settings settings;
     const QString prefix ("settings/");
 
     // File type
     QString fileType = ui->fileTypeCombo->currentText();
-    settings.setValue (prefix + "imageFileType", fileType);
+    settings.Set (prefix + "imageFileType", fileType);
 
     // Frames per second
     int fps = ui->fpsCombo->currentText().toInt();
-    settings.setValue (prefix + "framesPerSecond", fps);
+    settings.Set (prefix + "framesPerSecond", fps);
 
     // Image storage location
     QString imageStorageLocation = ui->imageLocationLineEdit->text();
     if (imageStorageLocation == "") {
         imageStorageLocation = "./";
     }
-    settings.setValue(prefix + "imageStorageLocation", imageStorageLocation);
+    settings.Set(prefix + "imageStorageLocation", imageStorageLocation);
 
     // Image filename format
     QString imageFilenameFormat = ui->filenameFormatLineEdit->text();
-    settings.setValue(prefix + "imageFilenameFormat", imageFilenameFormat);
+    settings.Set(prefix + "imageFilenameFormat", imageFilenameFormat);
 
     // Camera
     QString camera = ui->cameraCombo->currentText();
-    settings.setValue(prefix + "camera", camera);
+    settings.Set(prefix + "camera", camera);
 
     // Resolution
     QSize resolution = ui->resolutionCombo->currentData().toSize();
-    settings.setValue(prefix + "resolution", resolution);
+
+    int w = resolution.width();
+    int h = resolution.height();
+    settings.Set(prefix + "imageWidth", w);
+    settings.Set(prefix + "imageHeight", h);
 
 
     // Pre-title screen
     QString titleScreenLocation = ui->preTitleScreenFileLineEdit->text();
-    settings.setValue("settings/preTitleScreenLocation", titleScreenLocation);
+    settings.Set("settings/preTitleScreenLocation", titleScreenLocation);
 
     // Pre-title duration
     double preTitleScreenDuration = ui->preTitleDurationSpinbox->value();
-    settings.setValue("settings/preTitleScreenDuration", preTitleScreenDuration);
+    settings.Set("settings/preTitleScreenDuration", preTitleScreenDuration);
 
     // Title duration
     double titleScreenDuration = ui->titleDurationSpinbox->value();
-    settings.setValue("settings/titleScreenDuration", titleScreenDuration);
+    settings.Set("settings/titleScreenDuration", titleScreenDuration);
 
     // Credits duration
     double creditsDuration = ui->creditsDurationSpinbox->value();
-    settings.setValue("settings/creditsDuration", creditsDuration);
+    settings.Set("settings/creditsDuration", creditsDuration);
 }
 
 void SettingsDialog::on_imageLocationBrowseButton_clicked()
@@ -203,33 +207,12 @@ void SettingsDialog::closeEvent(QCloseEvent *event)
 
 void SettingsDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
-    QSettings settings;
+    Settings settings;
     if (button->text() == "Reset") {
         QMessageBox::StandardButton result = QMessageBox::warning (this, "Confirm reset", "This will reset all settings to their default values, and cannot be undone. Do you want to reset?", QMessageBox::Yes|QMessageBox::Cancel);
         if (result == QMessageBox::Yes) {
-            for (auto i = SETTING_DEFAULTS.constBegin(); i != SETTING_DEFAULTS.constEnd(); ++i) {
-                settings.setValue (i.key(), i.value());
-            }
+            settings.Reset();
             load();
         }
     }
-}
-
-
-QVariant SettingsDialog::getDefault (const QString &key)
-{
-    // This lets us set up all the defaults in one concise location
-    if (SettingsDialog::SETTING_DEFAULTS.empty()) {
-        SETTING_DEFAULTS.insert("settings/imageFileType","JPG");
-        SETTING_DEFAULTS.insert("settings/framesPerSecond",15);
-        SETTING_DEFAULTS.insert("settings/imageStorageLocation","Image Files/");
-        SETTING_DEFAULTS.insert("settings/imageFilenameFormat","yyyy-MM-dd-hh-mm-ss");
-        SETTING_DEFAULTS.insert("settings/camera","Always use default");
-        SETTING_DEFAULTS.insert("settings/resolution",QSize(640,480));
-        SETTING_DEFAULTS.insert("settings/preTitleScreenLocation","./PreTitleScreen.jpg");
-        SETTING_DEFAULTS.insert("settings/preTitleScreenDuration",2.0);
-        SETTING_DEFAULTS.insert("settings/titleScreenDuration",2.0);
-        SETTING_DEFAULTS.insert("settings/creditsDuration",5.0);
-    }
-    return SETTING_DEFAULTS[key];
 }
