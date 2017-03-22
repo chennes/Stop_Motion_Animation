@@ -16,12 +16,12 @@ SoundEffect::SoundEffect(const QString &filename):
     }
 }
 
-SoundEffect::SoundEffect(const QString &filename, double start, double in, double out):
+SoundEffect::SoundEffect(const QString &filename, double start, double in, double out, double volume):
     _filename (filename),
     _startTime(start),
     _in(in),
     _out(out),
-    _volume(1.0),
+    _volume(volume),
     _isPlaying (false)
 {
     _playback.setMedia (QUrl::fromLocalFile(filename));

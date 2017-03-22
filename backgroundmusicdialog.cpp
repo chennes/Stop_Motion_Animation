@@ -22,11 +22,13 @@ BackgroundMusicDialog::BackgroundMusicDialog(QWidget *parent) :
     ui->playPauseButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaPlay));
     ui->rewindButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaSkipBackward));
 
+    connect (this, &BackgroundMusicDialog::finished, this, &BackgroundMusicDialog::dialogClosed);
+
     _player = new QMediaPlayer (this);
     _player->setNotifyInterval(75);
     connect(_player, &QMediaPlayer::positionChanged, this, &BackgroundMusicDialog::playerPositionChanged);
-    connect (_player, &QMediaPlayer::stateChanged, this, &BackgroundMusicDialog::playerStateChanged);
-    connect (ui->waveform, &Waveform::playheadManuallyChanged, this, &BackgroundMusicDialog::setPlayhead);
+    connect(_player, &QMediaPlayer::stateChanged, this, &BackgroundMusicDialog::playerStateChanged);
+    connect(ui->waveform, &Waveform::playheadManuallyChanged, this, &BackgroundMusicDialog::setPlayhead);
 }
 
 BackgroundMusicDialog::~BackgroundMusicDialog()
@@ -101,6 +103,7 @@ void BackgroundMusicDialog::on_playPauseButton_clicked()
     if (_player->state() == QMediaPlayer::StoppedState ||
         _player->state() == QMediaPlayer::PausedState) {
         _player->setPosition(ui->waveform->getPlayheadPosition());
+        on_volumeSlider_valueChanged (ui->volumeSlider->value());
         _player->play();
     } else {
         ui->playPauseButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaPlay));
@@ -145,9 +148,9 @@ void BackgroundMusicDialog::showEvent(QShowEvent *)
     }
 }
 
-void BackgroundMusicDialog::closeEvent(QCloseEvent *)
+void BackgroundMusicDialog::dialogClosed(int)
 {
-    _player->stop();
+    _player->pause();
 }
 
 void BackgroundMusicDialog::on_removeMusicButton_clicked()
@@ -168,5 +171,16 @@ SoundEffect BackgroundMusicDialog::getBackgroundMusic () const
 {
     double in = (double)ui->waveform->getSelectionStart() / 1000.0;
     double out = in + (double)ui->waveform->getSelectionLength() / 1000.0;
-    return SoundEffect (_filename, 0.0, in, out);
+    double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(200.0),
+                                                  QAudio::LogarithmicVolumeScale,
+                                                  QAudio::LinearVolumeScale);
+    return SoundEffect (_filename, 0.0, in, out, linearVolume);
+}
+
+void BackgroundMusicDialog::on_volumeSlider_valueChanged(int value)
+{
+    qreal linearVolume = QAudio::convertVolume(value / qreal(200.0),
+                                                  QAudio::LogarithmicVolumeScale,
+                                                  QAudio::LinearVolumeScale);
+    _player->setVolume (qRound(linearVolume * 100));
 }

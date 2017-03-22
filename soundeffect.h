@@ -11,7 +11,7 @@ class SoundEffect : public QObject
 public:
     SoundEffect(const QString &filename = "");
 
-    SoundEffect(const QString &filename, double start, double in, double out);
+    SoundEffect(const QString &filename, double start, double in, double out, double volume);
 
     SoundEffect(const SoundEffect &sfx);
 

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PLS Stop Motion Creator Help</title>
+</head>
+<body>
+
+        <h1>Help with PLS Stop Motion Creator</h1>
+	<p>
+        Welcome to Pioneer Library's System's Stop Motion Creator software. It's designed to let pretty
+        much anyone at any age make their own movies, one image at a time.
+	</p>
+	<h2>Quick Start</h2>
+	<p>
+        Basically all you need to do is plug in a webcam, launch the software, and start hitting the spacebar. All the images files
+	are stored in a folder called "Image Files" within the same folder as the program, in sub-folders that are
+	date- and time-stamped with the time the program launched. There is a play button to simply play back all 
+        the frames you have taken. The default playback rate is 15 frames per second, but this can be
+        adjusted in the settings.
+	</p>
+        <p>
+        If you want some help lining up your shots, holding down the <tt>x</tt> or <tt>z</tt> keys on
+        your keyboard will switch to showing the previous shot. This won't affect the stored image,
+        so it doesn't matter if you are still holding them down when you actually take the picture.
+        </p>
+	<p>
+        When you are completely done with your images, you can create an actual movie file for sharing by clicking
+        "Create Final Movie". The movie will be stored with the images and end with a ".mp4" extension.
+	</p>
+	
+	<h2>What do all the buttons do?</h2>
+	This section provides a more detailed overview of exactly what each button does, including a little bit
+	of technical detail.
+	<h3>Start a New Movie</h3>
+    Calculates a new date stamp (Year-Month-Day-Hour-Minute-Second), resets your number of frames, and starts
+	recording all new frames into a folder named with the new date stamp. It also re-initializes the camera, so
+	if your camera wasn't ready when you first launched the program, clicking this will scan for cameras again.
+	<h3>Add to Previous Movie</h3>
+        Opens a window asking you to select a pre-existing movie file (the filename will end in &quot;.json&quot;). It
+        <em>must</em> be in the standard "Image Files/YYYY-MM-DD-HH-MM-SS/YYYY-MM-DD-HH-MM-SS.json" format and
+	location. If it is anywhere else you must use the "Import and Clean Frames" button instead. Adding to a previous 
+	movie will reset your date stamp to that movie's original stamp, and update the number of frames to reflect the 
+	frames you have already taken. New frames will simply be added to the end of that movie, just like you never
+	closed it.
+	<h3>Create final movie</h3>
+	This assembles your frames into a single movie file (technically an MP4 file using H.264 encoding), along with
+	an optional audio file as its soundtrack. When it is done encoding it will load up the movie in whatever your
+        computer's default player is.
+	<h3>Import</h3>
+	The basic idea of this button is to let you choose any folder full of images anywhere on your computer and
+	create a stop-motion animation from them. What is actually does is scan through the folder you select and
+        locate all of the JPEG files (*.jpg). It lists them alphabetically, then <em>copies</em> and <em>renames</em> them
+	into a folder following the standard folder structure. This has a couple of uses: first, you can use it to
+	move frames from somewhere else on your computer into the place where this program expects them to be. Second,
+	you can use it to re-number frames of a movie where you have manually deleted (or added) frames from the
+	middle. 
+	<h3>Help</h3>
+        Opens this help screen.
+	<h3>Take Photo</h3>
+        Stores the currently-displayed webcam image into a JPEG-formatted image file in a folder named with the
+        date stamp displayed in the upper left corner of the window.
+	<h3>Delete Last Photo</h3>
+	Deletes the most recently-taken photo. To delete photos from the middle of the movie you have to manually remove the 
+	files and then import those frames using the "Import and Clean Frames" button.
+	<h3>Play</h3>
+        Loads up each frame and displays it. The default playback rate is 15 frames per second, but this
+        can be adjusted in the settings.
+
+<h1>Credits</h1>
+<p>This software was developed at the Norman, Oklahoma Central public library, a part of <a href="http://pioneerlibrarysystem.org">Pioneer Library
+System</a>. The lead developer was Chris Hennes. Testing and debugging support was provided by Aaron Pence
+and the many students who attended our stop motion animation programs.</p>
+
+<p>The software relies upon the following open-source libraries:
+<ul>
+<li><a href="https://www.qt.io/">Qt</a> - a graphical user interface library.</li>
+<li><a href="https://ffmpeg.org/">ffmpeg</a> - various libraries for encoding video, as well as significant portions of example code.</li>
+</ul>
+
+<p>The icon for the program is based on two open-source icons from <a href="https://commons.wikimedia.org/wiki/Main_Page">Wikimedia Commons</a>:
+<ul>
+<li><a href="https://commons.wikimedia.org/wiki/File:Comic_Clapperboard.svg">Comic Clapperboard.svg</a></li>
+<li><a href="https://commons.wikimedia.org/wiki/File:Gnome-dev-camera.svg">Gnome-dev-camera.svg</a></li>
+</ul>
+</p>
+
+<h1>License</h1>
+<p>Copyright &copy; 2017 Pioneer Library System</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+
+</body>
+</html>

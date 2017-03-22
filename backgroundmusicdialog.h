@@ -29,7 +29,6 @@ public:
 
 protected:
     virtual void showEvent(QShowEvent * event);
-    virtual void closeEvent(QCloseEvent * e);
 
 
 private slots:
@@ -39,10 +38,13 @@ private slots:
     void playerPositionChanged (qint64 newPosition);
     void playerStateChanged (QMediaPlayer::State state);
     void setPlayhead (qint64 newPosition);
+    void dialogClosed(int);
 
     void on_removeMusicButton_clicked();
 
     void on_rewindButton_clicked();
+
+    void on_volumeSlider_valueChanged(int value);
 
 private:
     Ui::BackgroundMusicDialog *ui;

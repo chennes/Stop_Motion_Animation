@@ -607,7 +607,7 @@ void avcodecWrapper::wrapMain()
         throw libavException("Error occurred when opening output file: " + avErrorToQString(ret));
     }
 
-    char tsbuf[AV_TS_MAX_STRING_SIZE];
+    //char tsbuf[AV_TS_MAX_STRING_SIZE];
     while (encode_video) {
         /* select the stream to encode */
         if (encode_video &&
