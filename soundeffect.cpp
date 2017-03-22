@@ -7,6 +7,7 @@ SoundEffect::SoundEffect(const QString &filename):
     _filename (filename),
     _startTime(0.0),
     _in(0.0),
+    _volume(1.0),
     _isPlaying (false)
 {
     if (_filename.length() > 0) {
@@ -20,6 +21,7 @@ SoundEffect::SoundEffect(const QString &filename, double start, double in, doubl
     _startTime(start),
     _in(in),
     _out(out),
+    _volume(1.0),
     _isPlaying (false)
 {
     _playback.setMedia (QUrl::fromLocalFile(filename));
@@ -32,6 +34,7 @@ SoundEffect::SoundEffect(const SoundEffect &sfx) :
     _startTime(sfx._startTime),
     _in(sfx._in),
     _out(sfx._out),
+    _volume(sfx._volume),
     _isPlaying(false)
 {
     if (_filename.length() > 0) {
@@ -47,6 +50,7 @@ SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
         _startTime = rhs._startTime;
         _in = rhs._in;
         _out = rhs._out;
+        _volume = rhs._volume;
         _isPlaying = false;
         if (_filename.length() > 0) {
             _playback.setMedia (QUrl::fromLocalFile(_filename));
@@ -103,6 +107,12 @@ void SoundEffect::setOutPoint (double t)
 }
 
 
+void SoundEffect::setVolume (double v)
+{
+    _volume = v;
+}
+
+
 
 QString SoundEffect::getFilename () const
 {
@@ -124,6 +134,12 @@ double SoundEffect::getInPoint () const
 double SoundEffect::getOutPoint () const
 {
     return _out;
+}
+
+
+double SoundEffect::getVolume () const
+{
+    return _volume;
 }
 
 

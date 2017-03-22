@@ -167,6 +167,6 @@ void BackgroundMusicDialog::on_rewindButton_clicked()
 SoundEffect BackgroundMusicDialog::getBackgroundMusic () const
 {
     double in = (double)ui->waveform->getSelectionStart() / 1000.0;
-    double out = in + _movieDuration;
+    double out = in + (double)ui->waveform->getSelectionLength() / 1000.0;
     return SoundEffect (_filename, 0.0, in, out);
 }

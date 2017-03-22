@@ -26,11 +26,13 @@ public:
     void setStartTime (double t);
     void setInPoint (double t);
     void setOutPoint (double t);
+    void setVolume (double v);
 
     QString getFilename () const;
     double getStartTime () const;
     double getInPoint () const;
     double getOutPoint () const;
+    double getVolume () const;
 
     void play () const;
 
@@ -58,6 +60,7 @@ private:
     double _startTime;
     double _in;
     double _out;
+    double _volume;
 
     mutable bool _isPlaying;
     mutable QMediaPlayer _playback;

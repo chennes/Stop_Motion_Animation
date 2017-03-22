@@ -45,7 +45,6 @@ extern "C" {
     #include <libavutil/mathematics.h>
     #include <libavformat/avformat.h>
     #include <libswscale/swscale.h>
-    #include <libswresample/swresample.h>
 }
 
 /***************************************************************************
@@ -55,8 +54,6 @@ extern "C" {
 avcodecWrapper::avcodecWrapper() :
     src_samples_data (NULL),
     dst_samples_data (NULL),
-    swr_ctx (NULL),
-    emptyFrame(NULL),
     frame (NULL),
     frame_count (0)
 {
@@ -132,7 +129,7 @@ int avcodecWrapper::write_frame(AVFormatContext *fmt_ctx, const AVRational *time
     pkt->stream_index = st->index;
 
     /* Write the compressed frame to the media file. */
-    log_packet(fmt_ctx, pkt);
+    //log_packet(fmt_ctx, pkt);
     return av_interleaved_write_frame(fmt_ctx, pkt);
 }
 
@@ -233,26 +230,26 @@ AVFrame *avcodecWrapper::alloc_audio_frame(enum AVSampleFormat sample_fmt,
                                   uint64_t channel_layout,
                                   int sample_rate, int nb_samples)
 {
-    AVFrame *frame = av_frame_alloc();
+    AVFrame *audioFrame = av_frame_alloc();
     int ret;
 
-    if (!frame) {
+    if (!audioFrame) {
         throw libavException("Error allocating an audio frame");
     }
 
-    frame->format = sample_fmt;
-    frame->channel_layout = channel_layout;
-    frame->sample_rate = sample_rate;
-    frame->nb_samples = nb_samples;
+    audioFrame->format = sample_fmt;
+    audioFrame->channel_layout = channel_layout;
+    audioFrame->sample_rate = sample_rate;
+    audioFrame->nb_samples = nb_samples;
 
     if (nb_samples) {
-        ret = av_frame_get_buffer(frame, 0);
+        ret = av_frame_get_buffer(audioFrame, 0);
         if (ret < 0) {
             throw libavException("Error allocating an audio buffer: " + avErrorToQString(ret));
         }
     }
 
-    return frame;
+    return audioFrame;
 }
 
 void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg)
@@ -272,10 +269,6 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
         throw libavException("Could not open audio codec: " + avErrorToQString(ret));
     }
 
-    /* init signal generator */
-    ost->t     = 0;
-    ost->tincr = 1.0 / c->sample_rate;
-
     if (c->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE)
         nb_samples = 10000;
     else
@@ -283,163 +276,14 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
 
     ost->frame     = alloc_audio_frame(c->sample_fmt, c->channel_layout,
                                        c->sample_rate, nb_samples);
-    ost->tmp_frame = alloc_audio_frame(AV_SAMPLE_FMT_S16, c->channel_layout,
-                                       c->sample_rate, nb_samples);
-    emptyFrame = alloc_audio_frame(AV_SAMPLE_FMT_S16, c->channel_layout,
-                                   c->sample_rate, nb_samples);
-
-
-    int buffer_size = av_samples_get_buffer_size(NULL, c->channels, c->frame_size,
-                                                 AV_SAMPLE_FMT_S16, 0);
-
-    uint16_t *samples;
-    samples = (uint16_t *)av_malloc(buffer_size);
-    ret = avcodec_fill_audio_frame(emptyFrame, c->channels, c->sample_fmt,
-                                   (const uint8_t*)samples, buffer_size, 0);
-    for (int j = 0; j < c->frame_size; j++) {
-        samples[2*j] = 0;
-
-        for (int k = 1; k < c->channels; k++) {
-            samples[2*j + k] = samples[2*j];
-        }
-    }
-    //av_freep(&samples); // Don't do this here!
-
-
 
     /* copy the stream parameters to the muxer */
     ret = avcodec_parameters_from_context(ost->st->codecpar, c);
     if (ret < 0) {
         throw libavException("Could not copy the stream parameters");
     }
-
-    /* create resampler context */
-    ost->swr_ctx = swr_alloc();
-    if (!ost->swr_ctx) {
-        throw libavException("Could not allocate resampler context");
-    }
-
-    /* set options */
-    av_opt_set_int       (ost->swr_ctx, "in_channel_count",   c->channels,       0);
-    av_opt_set_int       (ost->swr_ctx, "in_sample_rate",     c->sample_rate,    0);
-    av_opt_set_sample_fmt(ost->swr_ctx, "in_sample_fmt",      AV_SAMPLE_FMT_S16, 0);
-    av_opt_set_int       (ost->swr_ctx, "out_channel_count",  c->channels,       0);
-    av_opt_set_int       (ost->swr_ctx, "out_sample_rate",    c->sample_rate,    0);
-    av_opt_set_sample_fmt(ost->swr_ctx, "out_sample_fmt",     c->sample_fmt,     0);
-
-    /* initialize the resampling context */
-    if ((ret = swr_init(ost->swr_ctx)) < 0) {
-        throw libavException("Failed to initialize the resampling context: " + avErrorToQString(ret));
-    }
 }
 
-void avcodecWrapper::open_audio_file(InputSoundEffect &isfx)
-{
-    int ret;
-    AVCodec *dec;
-
-    QByteArray ba = isfx.sfx.getFilename().toLatin1();
-    const char *filename = ba.data();
-    if ((ret = avformat_open_input(&isfx.fmt_ctx, filename, NULL, NULL)) < 0) {
-        throw libavException("Cannot open audio input file " + QString(filename) + ": " + avErrorToQString(ret));
-    }
-
-    if ((ret = avformat_find_stream_info(isfx.fmt_ctx, NULL)) < 0) {
-        throw libavException("Cannot find audio stream information for " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
-    }
-
-    /* select the audio stream */
-    ret = av_find_best_stream(isfx.fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, &dec, 0);
-    if (ret < 0) {
-        throw libavException("Cannot find an audio stream in the input file " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
-    }
-    isfx.audio_stream_index = ret;
-    isfx.dec_ctx = isfx.fmt_ctx->streams[isfx.audio_stream_index]->codec;
-    av_opt_set_int(isfx.dec_ctx, "refcounted_frames", 1, 0);
-
-    /* init the audio decoder */
-    if ((ret = avcodec_open2(isfx.dec_ctx, dec, NULL)) < 0) {
-        throw libavException("Cannot open audio decoder for the input file " + isfx.sfx.getFilename() + ": " + avErrorToQString(ret));
-    }
-
-    isfx.frame = av_frame_alloc();
-}
-
-AVFrame *avcodecWrapper::get_audio_frame(OutputStream *ost)
-{
-
-
-    return NULL;
-
-
-    AVFrame *frame = ost->tmp_frame;
-
-    // Load up the data from whatever file it is that we are reading from right now...
-    AVPacket packet, firstPacket;
-
-    // In the long run we need to actually combine multiple files, potentially at overlapping
-    // time ranges. So we need to see if this frame is supposed to include samples from each
-    // of our files, and if so, to read them in.
-
-    // For now, just load the first one...
-    InputSoundEffect isfx = _soundEffectStreams.first();
-
-
-    float in, out, offset;
-    in = isfx.sfx.getInPoint();
-    out = isfx.sfx.getOutPoint();
-    offset = isfx.sfx.getStartTime();
-    if (in > ost->t-offset ||
-        out < ost->t-offset) {
-        ost->enc->
-        std::cout << "No audio: t=" << ost->t << ", offset=" << offset << ", in=" << in << ", out=" << out << std::endl;
-        return NULL;
-    }
-
-    int ret;
-    int got_frame;
-    bool firstTime = true;
-    av_init_packet(&packet);
-    packet.data = NULL;
-    packet.size = 0;
-    while (packet.size > 0 || firstTime) {
-        std::cout << "Reading audio..." << std::endl;
-        if ((ret = av_read_frame(isfx.fmt_ctx, &packet)) < 0) {
-            // This might be the end of the file, or an error:
-            std::cout << "Ret was less than zero" << std::endl;
-            return NULL;
-        }
-        if (firstTime) {
-            firstPacket = packet;
-            firstTime = false;
-        }
-
-        if (packet.stream_index == isfx.audio_stream_index) {
-            got_frame = 0;
-            ret = avcodec_decode_audio4(isfx.dec_ctx, frame, &got_frame, &packet);
-            if (ret < 0) {
-                throw libavException("Error decoding audio from SFX file: " + avErrorToQString(ret));
-            }
-            packet.size -= ret;
-            packet.data += ret;
-            if (!got_frame) {
-                // An error?
-            }
-            if (packet.size <= 0) {
-                av_packet_unref(&firstPacket);
-            }
-        } else {
-            /* discard non-wanted packets */
-            std::cout << "Found an unwanted packet!" << std::endl;
-            av_packet_unref(&firstPacket);
-        }
-    }
-
-    frame->pts = ost->next_pts;
-    ost->next_pts  += frame->nb_samples;
-
-    return frame;
-}
 
 /*
  * encode one audio frame and send it to the muxer
@@ -449,81 +293,43 @@ int avcodecWrapper::write_audio_frame(AVFormatContext *oc, OutputStream *ost)
 {
     AVCodecContext *c;
     AVPacket pkt = { 0 }; // data and size must be 0;
-    AVFrame *frame;
     int ret;
     int got_packet = 0;
-    int dst_nb_samples;
 
     av_init_packet(&pkt);
     c = ost->enc;
 
-    frame = get_audio_frame(ost);
+    _audioJoiner.SetFrameSize (ost->enc->frame_size);
+    ret = av_frame_make_writable(ost->frame);
+    ost->frame = _audioJoiner.GetNextFrame(); // This will always return a frame, even if it is silent
+    ost->next_pts += ost->frame->nb_samples;
 
-    if (frame) {
-        /* convert samples from native format to destination codec format, using the resampler */
-            /* compute destination number of samples */
-            dst_nb_samples = av_rescale_rnd(swr_get_delay(ost->swr_ctx, c->sample_rate) + frame->nb_samples,
-                                            c->sample_rate, c->sample_rate, AV_ROUND_UP);
+    /* when we pass a frame to the encoder, it may keep a reference to it
+     * internally; make sure we do not overwrite it here
+     */
+    if (ret < 0) {
+        throw libavException("Could not make the frame writable: " + avErrorToQString(ret));
+    }
 
-        /* when we pass a frame to the encoder, it may keep a reference to it
-         * internally;
-         * make sure we do not overwrite it here
-         */
-        ret = av_frame_make_writable(ost->frame);
+    AVRational tb;
+    tb.num=1;
+    tb.den=c->sample_rate;
+    ost->frame->pts = av_rescale_q(ost->samples_count, tb, c->time_base);
+    ost->samples_count += ost->frame->nb_samples;
+
+    ret = avcodec_encode_audio2(c, &pkt, ost->frame, &got_packet);
+    if (ret < 0) {
+        throw libavException("Error encoding audio frame: " + avErrorToQString(ret));
+    }
+
+    if (got_packet) {
+        ret = write_frame(oc, &c->time_base, ost->st, &pkt);
         if (ret < 0) {
-            throw libavException("Could not make the frame writable: " + avErrorToQString(ret));
-        }
-
-        /* convert to destination format */
-        ret = swr_convert(ost->swr_ctx,
-                          ost->frame->data, dst_nb_samples,
-                          (const uint8_t **)frame->data, frame->nb_samples);
-        if (ret < 0) {
-            throw libavException("Error while converting: " + avErrorToQString(ret));
-        }
-        frame = ost->frame;
-
-        AVRational tb;
-        tb.num=1;
-        tb.den=c->sample_rate;
-        frame->pts = av_rescale_q(ost->samples_count, tb, c->time_base);
-        ost->samples_count += dst_nb_samples;
-    } else {
-        // We did not get a frame. This could be because we are in between files,
-        // or because we are at the end.
-        double highestTime = 0;
-        for (auto sfx = _soundEffects.begin(); sfx != _soundEffects.end(); ++sfx) {
-            double in = sfx->getInPoint();
-            double out = sfx->getOutPoint();
-            double offset = sfx->getStartTime();
-            double endTime = offset + out - in;
-            highestTime = std::max(highestTime, endTime);
-        }
-        if (highestTime <= ost->t) {
-            // We are past the end of the audio
-            return 1;
-        } else {
-            std::cout << "Using an empty audio frame" << std::endl;
-            frame = emptyFrame;
-        }
-
-        ret = avcodec_encode_audio2(c, &pkt, frame, &got_packet);
-        if (ret < 0) {
-            throw libavException("Error encoding audio frame: " + avErrorToQString(ret));
-        }
-
-        if (got_packet) {
-            ret = write_frame(oc, &c->time_base, ost->st, &pkt);
-            if (ret < 0) {
-                throw libavException("Error while writing audio frame: " + avErrorToQString(ret));
-            }
-        } else {
-            std::cout << "Got no packet from the encoder - who knows why?" << std::endl;
+            throw libavException("Error while writing audio frame: " + avErrorToQString(ret));
         }
     }
 
-
-    return (frame || got_packet) ? 0 : 1;
+    return 0; // This always writes data, the audio stream never ends.
 }
 
 /**************************************************************/
@@ -599,7 +405,7 @@ void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
     const char *filename = filenameBytes.data();
 
     int ret;
-    std::cout << "Trying to load frame " << frame_index << ": " << filename << std::endl;
+    //std::cout << "Trying to load frame " << frame_index << ": " << filename << std::endl;
     ret = avformat_open_input (&fc, filename, NULL, &opt);
     if (ret < 0) {
         throw libavException("Error reading the video frame file:" + avErrorToQString(ret));
@@ -728,7 +534,6 @@ void avcodecWrapper::close_stream(AVFormatContext *, OutputStream *ost)
     av_frame_free(&ost->frame);
     av_frame_free(&ost->tmp_frame);
     sws_freeContext(ost->sws_ctx);
-    swr_free(&ost->swr_ctx);
 }
 
 /**************************************************************/
@@ -778,16 +583,11 @@ void avcodecWrapper::wrapMain()
 
     if (have_audio) {
         for (auto s = _soundEffects.begin(); s != _soundEffects.end(); ++s) {
-            InputSoundEffect isfx;
-            isfx.sfx = *s;
-            isfx.audio_stream_index = 0;
-            isfx.fmt_ctx = NULL;
-            isfx.dec_ctx = NULL;
-            isfx.frame = NULL;
-            open_audio_file(isfx);
-            _soundEffectStreams.append(isfx);
+            _audioJoiner.AddFile(s->getFilename(), s->getStartTime(), s->getInPoint(), s->getOutPoint(),s->getVolume());
         }
-
+        _audioJoiner.SetFormat(audio_st.enc->sample_fmt);
+        _audioJoiner.SetSampleRate(audio_st.enc->sample_rate);
+        _audioJoiner.StartStream();
         open_audio(oc, audio_codec, &audio_st, opt);
     }
 
@@ -807,13 +607,16 @@ void avcodecWrapper::wrapMain()
         throw libavException("Error occurred when opening output file: " + avErrorToQString(ret));
     }
 
-    while (encode_video || encode_audio) {
+    char tsbuf[AV_TS_MAX_STRING_SIZE];
+    while (encode_video) {
         /* select the stream to encode */
         if (encode_video &&
             (!encode_audio || av_compare_ts(video_st.next_pts, video_st.enc->time_base,
                                             audio_st.next_pts, audio_st.enc->time_base) <= 0)) {
+            //qDebug() << "Video PTS " << av_ts_make_time_string (tsbuf, video_st.next_pts, &video_st.enc->time_base);
             encode_video = !write_video_frame(oc, &video_st);
         } else {
+            //qDebug() << "Audio PTS " << av_ts_make_time_string (tsbuf, audio_st.next_pts, &audio_st.enc->time_base);
             encode_audio = !write_audio_frame(oc, &audio_st);
         }
     }

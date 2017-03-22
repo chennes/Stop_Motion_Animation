@@ -6,6 +6,7 @@
 #include <QException>
 
 #include "soundeffect.h"
+#include "audiojoiner.h"
 
 extern "C" {
     #include <libavformat/avformat.h>
@@ -50,20 +51,7 @@ private:
         AVFrame *frame;
         AVFrame *tmp_frame;
 
-        float t, tincr;
-
         struct SwsContext *sws_ctx;
-        struct SwrContext *swr_ctx;
-    };
-
-    // A utility wrapper around an input sound effect
-    class InputSoundEffect {
-    public:
-        SoundEffect sfx;
-        AVFormatContext *fmt_ctx;
-        AVCodecContext *dec_ctx;
-        AVFrame *frame;
-        int audio_stream_index;
     };
 
 
@@ -74,12 +62,8 @@ private:
     void log_packet(const AVFormatContext *fmt_ctx, const AVPacket *pkt);
     int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt);
     void add_stream(OutputStream *ost, AVFormatContext *oc, AVCodec **codec, AVCodecID codec_id);
-    AVFrame *alloc_audio_frame(AVSampleFormat sample_fmt,
-                               uint64_t channel_layout,
-                               int sample_rate, int nb_samples);
-    void open_audio_file(InputSoundEffect &sfx);
-    void open_audio(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg);
-    AVFrame *get_audio_frame(OutputStream *ost);
+    AVFrame *alloc_audio_frame(enum AVSampleFormat sample_fmt,uint64_t channel_layout,int sample_rate, int nb_samples);
+    void open_audio(AVFormatContext *, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg);
     int write_audio_frame(AVFormatContext *oc, OutputStream *ost);
     AVFrame *alloc_picture(AVPixelFormat pix_fmt);
     void open_video(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, AVDictionary *opt_arg);
@@ -98,7 +82,6 @@ private:
     const AVPixelFormat STREAM_PIX_FMT = AV_PIX_FMT_YUV420P;
 
     // Audio output variables
-    AVFrame *emptyFrame;
     uint8_t **src_samples_data;
     int       src_samples_linesize;
     int       src_nb_samples;
@@ -106,10 +89,8 @@ private:
     uint8_t **dst_samples_data;
     int       dst_samples_linesize;
     int       dst_samples_size;
-    struct SwrContext *swr_ctx;
 
-    // Input sound effect streams
-    QList<InputSoundEffect> _soundEffectStreams;
+    AudioJoiner _audioJoiner;
 
     // Video output variables
     AVFrame *frame;

@@ -258,20 +258,39 @@ bool Movie::load (const QString &filename)
     QByteArray saveData = loadFile.readAll();
     QJsonDocument jsonDocument (QJsonDocument::fromJson(saveData));
     QJsonObject json (jsonDocument.object());
-    _name = json["name"].toString();
-    _numberOfFrames = json["numberOfFrames"].toInt();
-    _framesPerSecond = json["framesPerSecond"].toInt();
 
-    QJsonArray sfxArray = json["sfx"].toArray();
-    _soundEffects.clear();
-    for (int sfxIndex = 0; sfxIndex < sfxArray.size(); ++sfxIndex) {
-        QJsonObject sfxObject (sfxArray[sfxIndex].toObject());
-        SoundEffect sfx;
-        sfx.load (sfxObject);
-        _soundEffects.append(sfx);
+    //At a minimum, this file must have the following elements in it:
+    if (json.contains("name")) {
+        _name = json["name"].toString();
+    } else {
+        return false;
     }
-    QJsonObject backgroundObject (json["backgroundMusic"].toObject());
-    _backgroundMusic.load (backgroundObject);
+    if (json.contains("numberOfFrames")) {
+     _numberOfFrames = json["numberOfFrames"].toInt();
+    } else {
+        return false;
+    }
+    if (json.contains("framesPerSecond")) {
+        _framesPerSecond = json["framesPerSecond"].toInt();
+    } else {
+        return false;
+    }
+
+    // Sound effects are optional:
+    if (json.contains("sfx")) {
+        QJsonArray sfxArray = json["sfx"].toArray();
+        _soundEffects.clear();
+        for (int sfxIndex = 0; sfxIndex < sfxArray.size(); ++sfxIndex) {
+            QJsonObject sfxObject (sfxArray[sfxIndex].toObject());
+            SoundEffect sfx;
+            sfx.load (sfxObject);
+            _soundEffects.append(sfx);
+        }
+    }
+    if (json.contains("backgroundMusic")) {
+        QJsonObject backgroundObject (json["backgroundMusic"].toObject());
+        _backgroundMusic.load (backgroundObject);
+    }
     return true;
 }
 

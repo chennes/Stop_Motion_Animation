@@ -7,7 +7,6 @@
 #include <QFileDialog>
 #include "settings.h"
 
-
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
@@ -113,7 +112,7 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
 
     } else {
         // This should display an error of some kind...
-        ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start New Movie</kbd> button.</big>");
+        ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
         ui->videoLabel->show();
         ui->cameraViewfinder->hide();
         ui->takePhotoButton->setDisabled(true);
@@ -129,9 +128,17 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
         tr("Open Movie File"), "Image Files", tr("Stop-motion movie files (*.json);;All files (*.*)"));
 
     if (fileName.length() > 0) {
+
+        // See if we can read it first:
+        QFileInfo f (fileName);
+        QString filenameNoPath = f.fileName();
+        if (!f.isReadable()) {
+            _errorDialog.showMessage("Cannot read the file " + filenameNoPath);
+        }
+
         bool success = _movie->load(fileName);
         if (!success) {
-            _errorDialog.showMessage("Could not load the movie file " + fileName);
+            _errorDialog.showMessage("Could not load the file " + filenameNoPath + " as a PLS Stop Motion Creator movie file");
         } else {
             updateInterfaceForNewFrame();
             setState(State::LIVE);

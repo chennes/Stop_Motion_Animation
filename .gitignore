@@ -44,3 +44,7 @@ Temporary Items
 
 # Directory created when running
 Image Files
+
+# User settings from Qt Creator
+StopMotionAnimation.pro.user*
+StopMotionAnimation.pro-*

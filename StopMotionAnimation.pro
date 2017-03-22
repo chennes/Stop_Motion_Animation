@@ -36,7 +36,10 @@ SOURCES += main.cpp\
     previousframeoverlayeffect.cpp \
     frameeditor.cpp \
     frame.cpp \
-    settings.cpp
+    settings.cpp \
+	audioinputstream.cpp \
+        audiojoiner.cpp \
+    audiooutputstream.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -52,7 +55,12 @@ HEADERS  += stopmotionanimation.h \
     previousframeoverlayeffect.h \
     frameeditor.h \
     frame.h \
-    settings.h
+    settings.h \
+	audioinputstream.h \
+        audiojoiner.h  \
+    plsexception.h \
+    avexception.h \
+    audiooutputstream.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
@@ -84,6 +92,11 @@ win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavformat
 
 win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/avformat.lib
 else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libavformat.a
+
+win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavfilter
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/avfilter.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libavfilter.a
 
 win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswscale
 

@@ -167,6 +167,11 @@ qint64 Waveform::getSelectionStart () const
     return (qint64)(((double)_selectionStart/(double)this->width()) * _totalLength);
 }
 
+qint64 Waveform::getSelectionLength () const
+{
+    return _totalLength;
+}
+
 
 void Waveform::UpdateSelectionRectangles ()
 {
