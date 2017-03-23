@@ -130,7 +130,7 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
     if (fileName.length() > 0) {
 
         // See if we can read it first:
-        QFileInfo f (fileName);
+        QFileInfo f (filename);
         QString filenameNoPath = f.fileName();
         if (!f.isReadable()) {
             _errorDialog.showMessage("Cannot read the file " + filenameNoPath);
