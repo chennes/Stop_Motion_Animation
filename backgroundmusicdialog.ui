@@ -17,7 +17,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="Waveform" name="waveform"/>
+      <widget class="MultiRegionWaveform" name="waveform"/>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -179,9 +179,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>Waveform</class>
+   <class>MultiRegionWaveform</class>
    <extends>QGraphicsView</extends>
-   <header>waveform.h</header>
+   <header>multiregionwaveform.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

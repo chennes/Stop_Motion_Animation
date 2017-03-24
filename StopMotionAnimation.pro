@@ -38,7 +38,8 @@ SOURCES += main.cpp\
     frame.cpp \
     settings.cpp \
 	audioinputstream.cpp \
-        audiojoiner.cpp
+        audiojoiner.cpp \
+    multiregionwaveform.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -58,7 +59,8 @@ HEADERS  += stopmotionanimation.h \
 	audioinputstream.h \
         audiojoiner.h  \
     plsexception.h \
-    avexception.h
+    avexception.h \
+    multiregionwaveform.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \

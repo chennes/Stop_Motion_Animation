@@ -35,6 +35,7 @@ private slots:
     void on_chooseMusicFileButton_clicked();
     void on_playPauseButton_clicked();
     void readBuffer ();
+    void readFinished ();
     void playerPositionChanged (qint64 newPosition);
     void playerStateChanged (QMediaPlayer::State state);
     void setPlayhead (qint64 newPosition);
@@ -53,7 +54,7 @@ private:
     QGraphicsScene *_scene;
     QMediaPlayer *_player;
     double _movieDuration;
-    bool _firstLaunch;
+    bool _musicSet;
 };
 
 #endif // BACKGROUNDMUSICDIALOG_H

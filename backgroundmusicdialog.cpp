@@ -14,7 +14,7 @@ BackgroundMusicDialog::BackgroundMusicDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::BackgroundMusicDialog),
     _decoder(NULL),
-    _firstLaunch (true)
+    _musicSet (false)
 {
     ui->setupUi(this);
     ui->playPauseButton->setText("");
@@ -67,6 +67,7 @@ void BackgroundMusicDialog::loadFile (const QString &filename)
     ui->waveform->reset();
 
     QObject::connect (_decoder, &QAudioDecoder::bufferReady, this, &BackgroundMusicDialog::readBuffer);
+    QObject::connect (_decoder, &QAudioDecoder::finished, this, &BackgroundMusicDialog::readFinished);
     _decoder->start();
 
     ui->removeMusicButton->setDisabled(false);
@@ -80,7 +81,10 @@ void BackgroundMusicDialog::readBuffer ()
     QAudioBuffer buffer = _decoder->read();
     ui->waveform->setDuration(_decoder->duration());
     ui->waveform->addBuffer(buffer);
+}
 
+void BackgroundMusicDialog::readFinished ()
+{
     Settings settings;
     double preTitleDuration = settings.Get("settings/preTitleScreenDuration").toDouble();
     double titleDuration = settings.Get("settings/titleScreenDuration").toDouble();
@@ -89,12 +93,29 @@ void BackgroundMusicDialog::readBuffer ()
 
     double totalDuration = preTitleDuration + titleDuration + movieDuration + creditsDuration;
 
+    ui->waveform->ClearRegions();
+    ui->waveform->setDuration(_decoder->duration());
     ui->waveform->setSelectionLength(totalDuration*1000);
+    qint64 offset = 0;
+    ui->waveform->AddRegion("Intro", offset, offset+preTitleDuration*1000, Qt::black);
+    offset += preTitleDuration*1000;
+    ui->waveform->AddRegion("Title", offset, offset+titleDuration*1000, Qt::black);
+    offset += titleDuration*1000;
+    ui->waveform->AddRegion("Movie", offset, offset+movieDuration*1000, Qt::blue);
+    offset += movieDuration*1000;
+    ui->waveform->AddRegion("Credits", offset, offset+creditsDuration*1000, Qt::black);
+
+    _decoder->disconnect();
+    _musicSet = true;
 }
 
 void BackgroundMusicDialog::setMovieDuration (double duration)
 {
     _movieDuration = duration;
+    if (_musicSet) {
+        // Trigger a re-creation of the regions
+        readFinished ();
+    }
 }
 
 
@@ -142,8 +163,7 @@ void BackgroundMusicDialog::setPlayhead (qint64 newPosition)
 
 void BackgroundMusicDialog::showEvent(QShowEvent *)
 {
-    if (_firstLaunch) {
-        _firstLaunch = false;
+    if (!_musicSet) {
         on_chooseMusicFileButton_clicked();
     }
 }
@@ -159,6 +179,7 @@ void BackgroundMusicDialog::on_removeMusicButton_clicked()
     ui->playPauseButton->setDisabled(true);
     ui->rewindButton->setDisabled(true);
     ui->waveform->reset();
+    _musicSet = false;
 }
 
 void BackgroundMusicDialog::on_rewindButton_clicked()
@@ -169,12 +190,16 @@ void BackgroundMusicDialog::on_rewindButton_clicked()
 
 SoundEffect BackgroundMusicDialog::getBackgroundMusic () const
 {
-    double in = (double)ui->waveform->getSelectionStart() / 1000.0;
-    double out = in + (double)ui->waveform->getSelectionLength() / 1000.0;
-    double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(200.0),
-                                                  QAudio::LogarithmicVolumeScale,
-                                                  QAudio::LinearVolumeScale);
-    return SoundEffect (_filename, 0.0, in, out, linearVolume);
+    if (_musicSet) {
+        double in = (double)ui->waveform->getSelectionStart() / 1000.0;
+        double out = in + (double)ui->waveform->getSelectionLength() / 1000.0;
+        double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(200.0),
+                                                      QAudio::LogarithmicVolumeScale,
+                                                      QAudio::LinearVolumeScale);
+        return SoundEffect (_filename, 0.0, in, out, linearVolume);
+    } else {
+        return SoundEffect ();
+    }
 }
 
 void BackgroundMusicDialog::on_volumeSlider_valueChanged(int value)
