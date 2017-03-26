@@ -8,7 +8,7 @@
 #include "soundeffect.h"
 #include "helpdialog.h"
 #include "settingsdialog.h"
-#include "backgroundmusicdialog.h"
+#include "soundselectiondialog.h"
 #include "savefinalmoviedialog.h"
 #include "previousframeoverlayeffect.h"
 
@@ -55,6 +55,8 @@ private slots:
 
     void setBackgroundMusic();
 
+    void setSoundEffect();
+
     void updateInterfaceForNewFrame();
 
 private:
@@ -83,7 +85,8 @@ private:
 
     HelpDialog _help;
     SettingsDialog _settings;
-    BackgroundMusicDialog _backgroundMusic;
+    SoundSelectionDialog _backgroundMusic;
+    SoundSelectionDialog _soundEffects;
     SaveFinalMovieDialog _saveFinalMovie;
 
 

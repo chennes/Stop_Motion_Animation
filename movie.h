@@ -48,11 +48,13 @@ public:
 
     void addBackgroundMusic (const SoundEffect &backgroundMusic);
 
-    SoundEffect getBackgroundMusic () const;
+    SoundEffect getSelectedSound () const;
 
     void addSoundEffect (const SoundEffect &soundEffect);
 
     QList<SoundEffect> getSoundEffects () const;
+
+    SoundEffect getSoundEffect (int frame) const;
 
     void removeBackgroundMusic();
 

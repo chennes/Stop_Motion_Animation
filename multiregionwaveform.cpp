@@ -54,6 +54,8 @@ void MultiRegionWaveform::AddRegion (QString name, qint64 startMillis, qint64 en
             r.text->setY(r.text->y()+r.text->boundingRect().height()+1);
         }
     }
+    qint64 currentMillis = getSelectionLength();
+    setSelectionLength(std::max (currentMillis, endMillis));
 }
 
 void MultiRegionWaveform::ClearRegions ()
@@ -65,6 +67,7 @@ void MultiRegionWaveform::ClearRegions ()
         _scene.removeItem(r.rect);
     }
     _regions.clear();
+    _group = nullptr;
 }
 
 void MultiRegionWaveform::reset()

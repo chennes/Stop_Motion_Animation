@@ -9,16 +9,7 @@ QT       += core gui multimedia multimediawidgets widgets
 TARGET = Stop_Motion_Creator
 TEMPLATE = app
 
-# The following define makes your compiler emit warnings if you use
-# any feature of Qt which as been marked as deprecated (the exact warnings
-# depend on your compiler). Please consult the documentation of the
-# deprecated API in order to know how to port your code away from it.
-DEFINES += QT_DEPRECATED_WARNINGS
-
-# You can also make your code fail to compile if you use deprecated APIs.
-# In order to do so, uncomment the following line.
-# You can also select to disable deprecated APIs only up to a certain version of Qt.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
 SOURCES += main.cpp\
@@ -29,7 +20,6 @@ SOURCES += main.cpp\
     settingsdialog.cpp \
     filenameconstructiondialog.cpp \
     avcodecwrapper.cpp \
-    backgroundmusicdialog.cpp \
     utils.cpp \
     waveform.cpp \
     savefinalmoviedialog.cpp \
@@ -39,7 +29,9 @@ SOURCES += main.cpp\
     settings.cpp \
 	audioinputstream.cpp \
         audiojoiner.cpp \
-    multiregionwaveform.cpp
+    multiregionwaveform.cpp \
+    variableselectionwaveform.cpp \
+    soundselectiondialog.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -48,7 +40,6 @@ HEADERS  += stopmotionanimation.h \
     settingsdialog.h \
     filenameconstructiondialog.h \
     avcodecwrapper.h \
-    backgroundmusicdialog.h \
     utils.h \
     waveform.h \
     savefinalmoviedialog.h \
@@ -60,15 +51,17 @@ HEADERS  += stopmotionanimation.h \
         audiojoiner.h  \
     plsexception.h \
     avexception.h \
-    multiregionwaveform.h
+    multiregionwaveform.h \
+    variableselectionwaveform.h \
+    soundselectiondialog.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
     settingsdialog.ui \
     filenameconstructiondialog.ui \
-    backgroundmusicdialog.ui \
     savefinalmoviedialog.ui \
-    frameeditor.ui
+    frameeditor.ui \
+    soundselectiondialog.ui
 
 RESOURCES += \
     resources.qrc

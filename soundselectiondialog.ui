@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>BackgroundMusicDialog</class>
- <widget class="QDialog" name="BackgroundMusicDialog">
+ <class>SoundSelectionDialog</class>
+ <widget class="QDialog" name="SoundSelectionDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -15,9 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <layout class="QHBoxLayout" name="upperHLayout">
      <item>
-      <widget class="MultiRegionWaveform" name="waveform"/>
+      <widget class="QGraphicsView" name="dummyWaveform"/>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -109,14 +109,21 @@
      <item>
       <widget class="QPushButton" name="removeMusicButton">
        <property name="text">
-        <string>Remove music</string>
+        <string>Remove</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="resetSelectionButton">
+       <property name="text">
+        <string>Reset selection</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="chooseMusicFileButton">
        <property name="text">
-        <string>Choose music file...</string>
+        <string>Choose sound...</string>
        </property>
       </widget>
      </item>
@@ -177,19 +184,12 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>MultiRegionWaveform</class>
-   <extends>QGraphicsView</extends>
-   <header>multiregionwaveform.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>BackgroundMusicDialog</receiver>
+   <receiver>SoundSelectionDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -205,7 +205,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>BackgroundMusicDialog</receiver>
+   <receiver>SoundSelectionDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

@@ -10,7 +10,9 @@
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
-    _camera(NULL)
+    _camera(NULL),
+    _backgroundMusic (SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
+    _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
     ui->setupUi(this);
     this->setWindowTitle(QCoreApplication::applicationName());
@@ -26,7 +28,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     ui->cameraViewfinder->setGraphicsEffect(_overlayEffect);
     _overlayEffect->setEnabled(false);
 
-    // Grab the x and z keys from everything that might conceivably get them:
+    // Grab the x, z, and spacebar keys from everything that might conceivably get them:
     ui->addToPreviousButton->installEventFilter(this);
     ui->backgroundMusicButton->installEventFilter(this);
     ui->cameraViewfinder->installEventFilter(this);
@@ -40,6 +42,9 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     ui->soundEffectButton->installEventFilter(this);
     ui->startNewMovieButton->installEventFilter(this);
     ui->takePhotoButton->installEventFilter(this);
+
+    connect (&_backgroundMusic, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
+    connect (&_soundEffects, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setSoundEffect);
 }
 
 StopMotionAnimation::~StopMotionAnimation()
@@ -81,6 +86,8 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
         _camera = NULL;
     }
     _movie = std::unique_ptr<Movie> (new Movie (timestamp));
+    connect (_movie.get(), &Movie::frameChanged,
+             this, &StopMotionAnimation::movieFrameChanged);
 
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
     QString requestedCamera = settings.Get("settings/camera").toString();
@@ -102,11 +109,6 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
         _camera->setCaptureMode(QCamera::CaptureStillImage);
         _camera->start();
 
-        connect (_movie.get(), &Movie::frameChanged,
-                 this, &StopMotionAnimation::movieFrameChanged);
-
-        setState (State::LIVE);
-
         ui->takePhotoButton->setDisabled(false);
         ui->takePhotoButton->setDefault(true);
 
@@ -118,6 +120,7 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
         ui->takePhotoButton->setDisabled(true);
     }
 
+    setState (State::LIVE);
     updateInterfaceForNewFrame();
     adjustSize();
 }
@@ -141,7 +144,8 @@ void StopMotionAnimation::on_addToPreviousButton_clicked()
             _errorDialog.showMessage("Could not load the file " + filenameNoPath + " as a PLS Stop Motion Creator movie file");
         } else {
             updateInterfaceForNewFrame();
-            setState(State::LIVE);
+            setState(State::STILL); // We MUST set the state before the frame
+            _movie->setStillFrame (0, ui->videoLabel);
         }
     }
 }
@@ -201,7 +205,7 @@ void StopMotionAnimation::on_helpButton_clicked()
 void StopMotionAnimation::on_takePhotoButton_clicked()
 {
     // Store the frame
-    if (_state == State::LIVE) {
+    if (_state == State::LIVE && _camera) {
 
         // Get the frame out of the camera:
         _movie->addFrame (_camera);
@@ -230,18 +234,22 @@ void StopMotionAnimation::on_backgroundMusicButton_clicked()
     qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
     _backgroundMusic.show();
-    // Connect its slot to set the music
-    connect (&_backgroundMusic, &BackgroundMusicDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
 }
 
 void StopMotionAnimation::setBackgroundMusic ()
 {
-    _movie->addBackgroundMusic (_backgroundMusic.getBackgroundMusic());
+    _movie->addBackgroundMusic (_backgroundMusic.getSelectedSound());
+}
+
+void StopMotionAnimation::setSoundEffect()
+{
+    _movie->addSoundEffect (_soundEffects.getSelectedSound());
+    ui->soundEffectButton->setText("Edit sound effect...");
 }
 
 void StopMotionAnimation::on_soundEffectButton_clicked()
 {
-    // Launch the sound effects dialog
+    _soundEffects.show();
 }
 
 void StopMotionAnimation::on_playButton_clicked()
@@ -267,15 +275,25 @@ void StopMotionAnimation::on_horizontalSlider_sliderMoved(int value)
 
 void StopMotionAnimation::movieFrameChanged (unsigned int newFrame)
 {
+    SoundEffect sfx;
     switch (_state) {
     case State::LIVE:
         // If the movie frame changed while we were live, just ignore it
         break;
-    case State::PLAYBACK:
-        // Fall through...
     case State::STILL:
+        // Is there a sound effect for this frame?
+        sfx = _movie->getSoundEffect (newFrame);
+        if (sfx) {
+            ui->soundEffectButton->setText("Edit sound effect...");
+        } else {
+            ui->soundEffectButton->setText("Add sound effect...");
+        }
+        // Fall through...
+
+    case State::PLAYBACK:
         ui->frameNumberLabel->setText (QString::number(newFrame+1));
         ui->horizontalSlider->setValue(newFrame+1);
+
         break;
     }
 }
@@ -285,24 +303,32 @@ void StopMotionAnimation::setState (State newState)
     _state = newState;
     switch (_state) {
     case State::LIVE:
-        ui->videoLabel->hide();
-        ui->cameraViewfinder->show();
+        if (_camera) {
+            ui->videoLabel->hide();
+            ui->cameraViewfinder->show();
+        } else {
+            ui->videoLabel->show();
+            ui->cameraViewfinder->hide();
+        }
         ui->frameNumberLabel->setText("(Live)");
         ui->playButton->setText("Play");
         ui->horizontalSlider->setValue(_movie->getNumberOfFrames()+1);
         ui->takePhotoButton->setDefault(true);
+        ui->soundEffectButton->setEnabled(false);
         break;
     case State::PLAYBACK:
         ui->playButton->setText("Stop");
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
+        ui->soundEffectButton->setEnabled(false);
         break;
     case State::STILL:
         ui->playButton->setText("Play");
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
+        ui->soundEffectButton->setEnabled(true);
         break;
     }
 }
@@ -380,6 +406,12 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
                 _keydownState = KeydownState::PREVIOUS_FRAME;
             }
             handled = true;
+        } else if (keyEvent->key() == Qt::Key_Space) {
+            if (_state == State::LIVE) {
+                ui->takePhotoButton->click();
+            } else {
+                ui->playButton->click();
+            }
         } else {
             handled = false;
         }
@@ -436,4 +468,3 @@ void StopMotionAnimation::keyReleaseEvent(QKeyEvent * e)
     }
     QMainWindow::keyReleaseEvent(e);
 }
-

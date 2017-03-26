@@ -23,7 +23,7 @@ Movie::Movie(const QString &name) :
     _name (name),
     _numberOfFrames (0),
     _currentlyPlaying (false),
-    _currentFrame (0),
+    _currentFrame (-1),
     _computerSpeedAdjustment (-2)
 {
     Settings settings;
@@ -129,7 +129,9 @@ void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
     if (_currentFrame != frameNumber && frameNumber < _numberOfFrames) {
         _currentFrame = frameNumber;
         QString filename = getImageFilename (_currentFrame);
-        video->setPixmap(QPixmap (filename));
+        QPixmap pix (filename);
+        video->setPixmap(pix);
+        //video->setText("Frame " + QString::number(frameNumber+1));
         emit frameChanged (frameNumber);
     }
 }
@@ -165,7 +167,13 @@ void Movie::nextFrame ()
         qint32 nominalMS = (1000 / _framesPerSecond);
         if (_lastFrameTime.elapsed() != nominalMS) {
             _computerSpeedAdjustment = nominalMS - _lastFrameTime.elapsed();
-            _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
+            qint32 interval = 1000 / _framesPerSecond + _computerSpeedAdjustment;
+            if (interval > 0) {
+                _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
+            } else {
+                // Drop a frame
+                _playFrameCounter++;
+            }
         }
         _lastFrameTime.restart();
 
@@ -198,11 +206,24 @@ void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
 void Movie::addSoundEffect (const SoundEffect &soundEffect)
 {
     _soundEffects.push_back(soundEffect);
+    _soundEffects.back().setStartFrame(_currentFrame);
 }
 
 void Movie::removeBackgroundMusic()
 {
     _backgroundMusic = SoundEffect();
+}
+
+SoundEffect Movie::getSoundEffect (int frame) const
+{
+    auto itr = std::find_if (_soundEffects.begin(), _soundEffects.end(),
+                             [frame](SoundEffect s)->bool {return s.getStartFrame() == frame;});
+    if (itr == _soundEffects.end()) {
+        return SoundEffect();
+    } else {
+        return *itr;
+    }
+
 }
 
 void Movie::removeSoundEffect (const SoundEffect &soundEffect)

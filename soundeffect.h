@@ -11,7 +11,7 @@ class SoundEffect : public QObject
 public:
     SoundEffect(const QString &filename = "");
 
-    SoundEffect(const QString &filename, double start, double in, double out, double volume);
+    SoundEffect(const QString &filename, int startFrame, double in, double out, double volume);
 
     SoundEffect(const SoundEffect &sfx);
 
@@ -24,12 +24,14 @@ public:
     explicit operator bool() const;
 
     void setStartTime (double t);
+    void setStartFrame (int f);
     void setInPoint (double t);
     void setOutPoint (double t);
     void setVolume (double v);
 
     QString getFilename () const;
     double getStartTime () const;
+    int getStartFrame () const;
     double getInPoint () const;
     double getOutPoint () const;
     double getVolume () const;
@@ -57,7 +59,7 @@ public:
 
 private:
     QString _filename;
-    double _startTime;
+    int _startFrame;
     double _in;
     double _out;
     double _volume;

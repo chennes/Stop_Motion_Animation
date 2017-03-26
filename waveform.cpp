@@ -8,8 +8,7 @@
 
 Waveform::Waveform(QWidget *parent) :
     QGraphicsView (parent),
-    _playheadPixels (0),
-    _currentlyDragging (false)
+    _playheadPixels (0)
 {
     QGraphicsView::setScene(&_scene);
     this->setMouseTracking(true);
@@ -122,28 +121,35 @@ void Waveform::addBuffer (const QAudioBuffer &buffer)
 
 void Waveform::setSelectionStart (qint64 millis)
 {
-    _selectionStart = ((double) millis / (double)_totalLength) * this->width();
+    _selectionStart = millisToPixels(millis);
+    emit selectionRegionChanged(_selectionStart, _selectionLength);
 }
 
 void Waveform::setSelectionLength (qint64 millis)
 {
-    _selectionLength = ((double) millis / (double)_totalLength) * this->width();
+    _selectionLength = millisToPixels(millis);
+    emit selectionRegionChanged(_selectionStart, _selectionLength);
 }
 
 void Waveform::setPlayheadPosition (qint64 millis)
 {
-    _playheadPosition = ((double) millis / (double)_totalLength) * this->width();
+    _playheadPosition = millisToPixels(millis);
     _playheadLine->setX (_playheadPosition);
+}
+
+qint64 Waveform::getDuration () const
+{
+    return _totalLength;
 }
 
 qint64 Waveform::getPlayheadPosition () const
 {
-    return (qint64)(((double)_playheadPosition/(double)this->width()) * _totalLength);
+    return pixelsToMillis(_playheadPosition);
 }
 
 qint64 Waveform::getSelectionStart () const
 {
-    return (qint64)(((double)_selectionStart/(double)this->width()) * _totalLength);
+    return pixelsToMillis(_selectionStart);
 }
 
 qint64 Waveform::getSelectionLength () const
@@ -160,7 +166,7 @@ void Waveform::mousePressEvent(QMouseEvent *event)
 
 void Waveform::mouseReleaseEvent(QMouseEvent *event)
 {
-    qint64 millis = double(event->x()) / double(this->width()) * _totalLength;
+    qint64 millis = pixelsToMillis(event->x());
     setPlayheadPosition(millis);
     QGraphicsView::mouseReleaseEvent(event);
     emit playheadManuallyChanged (millis);
@@ -170,4 +176,17 @@ void Waveform::mouseMoveEvent(QMouseEvent *event)
 {
     _cursorLine->setX (event->x());
     QGraphicsView::mouseMoveEvent (event);
+}
+
+
+
+qint64 Waveform::pixelsToMillis(int pixels) const
+{
+    return (double)pixels / (double)_scene.width() * _totalLength;
+}
+
+
+int Waveform::millisToPixels (qint64 millis) const
+{
+    return (double) millis / (double) _totalLength * _scene.width();
 }

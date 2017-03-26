@@ -3,9 +3,11 @@
 #include <QTimer>
 #include <QJsonObject>
 
+#include "settings.h"
+
 SoundEffect::SoundEffect(const QString &filename):
     _filename (filename),
-    _startTime(0.0),
+    _startFrame(0),
     _in(0.0),
     _volume(1.0),
     _isPlaying (false)
@@ -16,9 +18,9 @@ SoundEffect::SoundEffect(const QString &filename):
     }
 }
 
-SoundEffect::SoundEffect(const QString &filename, double start, double in, double out, double volume):
+SoundEffect::SoundEffect(const QString &filename, int startFrame, double in, double out, double volume):
     _filename (filename),
-    _startTime(start),
+    _startFrame(startFrame),
     _in(in),
     _out(out),
     _volume(volume),
@@ -31,7 +33,7 @@ SoundEffect::SoundEffect(const QString &filename, double start, double in, doubl
 
 SoundEffect::SoundEffect(const SoundEffect &sfx) :
     _filename(sfx._filename),
-    _startTime(sfx._startTime),
+    _startFrame(sfx._startFrame),
     _in(sfx._in),
     _out(sfx._out),
     _volume(sfx._volume),
@@ -47,7 +49,7 @@ SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
 {
     if (this != &rhs) {
         _filename = rhs._filename;
-        _startTime = rhs._startTime;
+        _startFrame = rhs._startFrame;
         _in = rhs._in;
         _out = rhs._out;
         _volume = rhs._volume;
@@ -62,14 +64,14 @@ SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
 bool SoundEffect::operator== (const SoundEffect& rhs) const
 {
     return (_filename == rhs._filename &&
-            _startTime == rhs._startTime &&
+            _startFrame == rhs._startFrame &&
             _in == rhs._in &&
             _out == rhs._out);
 }
 
 bool SoundEffect::operator< (const SoundEffect& rhs) const
 {
-    if (_startTime == rhs._startTime) {
+    if (_startFrame == rhs._startFrame) {
         if (_filename == rhs._filename) {
             if (_in == rhs._in) {
                 return _out < rhs._out;
@@ -80,7 +82,7 @@ bool SoundEffect::operator< (const SoundEffect& rhs) const
             return _filename < rhs._filename;
         }
     } else {
-        return _startTime < rhs._startTime;
+        return _startFrame < rhs._startFrame;
     }
 }
 
@@ -91,7 +93,14 @@ SoundEffect::operator bool() const
 
 void SoundEffect::setStartTime (double t)
 {
-    _startTime = t;
+    Settings settings;
+    int fps = settings.Get ("settings/framesPerSecond").toInt();
+    _startFrame = int(round(t * fps));
+}
+
+void SoundEffect::setStartFrame(int f)
+{
+    _startFrame = f;
 }
 
 
@@ -121,9 +130,15 @@ QString SoundEffect::getFilename () const
 
 double SoundEffect::getStartTime () const
 {
-    return _startTime;
+    Settings settings;
+    int fps = settings.Get ("settings/framesPerSecond").toInt();
+    return (double)_startFrame / (double)fps;
 }
 
+int SoundEffect::getStartFrame() const
+{
+    return _startFrame;
+}
 
 double SoundEffect::getInPoint () const
 {
@@ -166,7 +181,7 @@ void SoundEffect::stop () const
 void SoundEffect::load (const QJsonObject &json)
 {
     _filename = json["filename"].toString();
-    _startTime = json["startTime"].toDouble();
+    _startFrame = json["startFrame"].toInt();
     _in = json["in"].toDouble();
     _out = json["out"].toDouble();
 
@@ -179,7 +194,7 @@ void SoundEffect::load (const QJsonObject &json)
 void SoundEffect::save (QJsonObject &json) const
 {
     json["filename"] = _filename;
-    json["startTime"] = _startTime;
+    json["startFrame"] = _startFrame;
     json["in"] = _in;
     json["out"] = _out;
 }

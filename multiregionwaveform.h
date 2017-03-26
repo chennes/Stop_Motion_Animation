@@ -14,7 +14,6 @@ public:
 
     virtual void reset ();
 
-
     // Events we need to handle
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
