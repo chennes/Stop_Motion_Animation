@@ -314,6 +314,7 @@ void StopMotionAnimation::setState (State newState)
         ui->playButton->setText("Play");
         ui->horizontalSlider->setValue(_movie->getNumberOfFrames()+1);
         ui->takePhotoButton->setDefault(true);
+        ui->takePhotoButton->setEnabled(true);
         ui->soundEffectButton->setEnabled(false);
         break;
     case State::PLAYBACK:
@@ -321,6 +322,7 @@ void StopMotionAnimation::setState (State newState)
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
+        ui->takePhotoButton->setEnabled(false);
         ui->soundEffectButton->setEnabled(false);
         break;
     case State::STILL:
@@ -328,6 +330,7 @@ void StopMotionAnimation::setState (State newState)
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
+        ui->takePhotoButton->setEnabled(false);
         ui->soundEffectButton->setEnabled(true);
         break;
     }
@@ -355,14 +358,12 @@ void StopMotionAnimation::updateInterfaceForNewFrame()
         ui->playButton->setDisabled(false);
         ui->horizontalSlider->setDisabled(false);
         ui->deletePhotoButton->setDisabled(false);
-        ui->soundEffectButton->setDisabled(false);
         ui->backgroundMusicButton->setDisabled(false);
         ui->createFinalMovieButton->setDisabled(false);
     } else {
         ui->playButton->setDisabled(true);
         ui->horizontalSlider->setDisabled(true);
         ui->deletePhotoButton->setDisabled(true);
-        ui->soundEffectButton->setDisabled(true);
         ui->backgroundMusicButton->setDisabled(true);
         ui->createFinalMovieButton->setDisabled(true);
     }
