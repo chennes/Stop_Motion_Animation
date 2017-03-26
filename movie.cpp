@@ -95,7 +95,7 @@ void Movie::addFrame (QCamera *camera)
 
 void Movie::importFrame (const QString &filename)
 {
-    QString newFilename = getImageFilename (_numberOfFrames) + "." + _encoderSettings.codec().toLower();
+    QString newFilename = getImageFilename (_numberOfFrames);
     bool success = QFile::copy (filename, newFilename);
     if (success) {
         _numberOfFrames++;

@@ -373,20 +373,6 @@ void StopMotionAnimation::updateInterfaceForNewFrame()
 
 void StopMotionAnimation::keyPressEvent(QKeyEvent * e)
 {
-    if (e->key() == 'x') {
-        if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
-            _keydownState = KeydownState::OVERLAY_FRAME;
-        }
-    } else if (e->key() == 'z') {
-        if (_state == State::LIVE && _keydownState == KeydownState::NONE) {
-            _keydownState = KeydownState::PREVIOUS_FRAME;
-        }
-    }
-    if (_keydownState == KeydownState::OVERLAY_FRAME) {
-        _overlayEffect->setEnabled(true);
-    } else {
-        _overlayEffect->setEnabled(false);
-    }
     QMainWindow::keyPressEvent(e);
 }
 
@@ -453,23 +439,5 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
 
 void StopMotionAnimation::keyReleaseEvent(QKeyEvent * e)
 {
-    if (e->key() == 'x') {
-        if (_keydownState == KeydownState::OVERLAY_FRAME) {
-            _keydownState = KeydownState::NONE;
-        }
-    } else if (e->key() == 'z') {
-        if (_keydownState == KeydownState::PREVIOUS_FRAME) {
-            _keydownState = KeydownState::NONE;
-        }
-    }
-    if (_keydownState == KeydownState::OVERLAY_FRAME) {
-        _overlayEffect->setEnabled(true);
-        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::BLEND);
-    } else if (_keydownState == KeydownState::PREVIOUS_FRAME) {
-        _overlayEffect->setEnabled(true);
-        _overlayEffect->setMode(PreviousFrameOverlayEffect::Mode::PREVIOUS);
-    } else {
-        _overlayEffect->setEnabled(false);
-    }
     QMainWindow::keyReleaseEvent(e);
 }
