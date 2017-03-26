@@ -413,6 +413,7 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
             } else {
                 ui->playButton->click();
             }
+            handled = true;
         } else {
             handled = false;
         }
@@ -429,6 +430,9 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
             if (_state == State::LIVE && _keydownState == KeydownState::PREVIOUS_FRAME) {
                 _keydownState = KeydownState::NONE;
             }
+            handled = true;
+        } else if (keyEvent->key() == Qt::Key_Space) {
+            // We actually handled it on the keydown...
             handled = true;
         } else {
             handled = false;
