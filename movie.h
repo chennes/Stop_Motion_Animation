@@ -102,7 +102,7 @@ private:
     QString _name;
     qint32 _numberOfFrames;
     qint32 _framesPerSecond;
-    QList<SoundEffect> _soundEffects;
+    QMap<int,SoundEffect> _soundEffects;
     SoundEffect _backgroundMusic;
 
     QCamera *_camera;

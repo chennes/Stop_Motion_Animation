@@ -36,6 +36,8 @@ public:
     double getOutPoint () const;
     double getVolume () const;
 
+public slots:
+
     void play () const;
 
     /**

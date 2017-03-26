@@ -42,8 +42,7 @@ Movie::Movie(const QString &name) :
     qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     _framesPerSecond = framesPerSecond;
 
-    // Set up libavcodec...
-    avcodec_register_all();
+    QObject::connect (&_playbackTimer, &QTimer::timeout, this, &Movie::nextFrame);
 }
 
 Movie::~Movie ()
@@ -147,7 +146,13 @@ void Movie::play (qint32 startFrame, QLabel *video)
     _playStartTime.start();
     _lastFrameTime.start();
     setStillFrame (startFrame, video);
-    QObject::connect (&_playbackTimer, &QTimer::timeout, this, &Movie::nextFrame);
+    if (_backgroundMusic) {
+        Settings settings;
+        double tOffset = settings.Get("settings/preTitleScreenDuration").toDouble() +
+                         settings.Get("settings/titleScreenDuration").toDouble();
+        double startTime = tOffset + (double)startFrame / (double)_framesPerSecond ;
+        _backgroundMusic.playFrom(startTime);
+    }
     _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
     _playbackTimer.start();
 }
@@ -186,9 +191,15 @@ void Movie::nextFrame ()
 
         qint32 targetFrame = _currentFrame + 1 + frameAdjust;
         if (targetFrame >= _numberOfFrames) {
-            targetFrame = 0;
+            stop();
+            play(0, _frameDestination);
+            return;
+        } else {
+            setStillFrame (targetFrame, _frameDestination);
+            if (_soundEffects.contains(targetFrame)) {
+                _soundEffects[targetFrame].play();
+            }
         }
-        setStillFrame (targetFrame, _frameDestination);
     }
 }
 
@@ -196,6 +207,10 @@ void Movie::stop ()
 {
     _currentlyPlaying = false;
     _playbackTimer.stop();
+    _backgroundMusic.stop();
+    for (auto &&sfx: _soundEffects) {
+        sfx.stop();
+    }
 }
 
 void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
@@ -205,8 +220,8 @@ void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
 
 void Movie::addSoundEffect (const SoundEffect &soundEffect)
 {
-    _soundEffects.push_back(soundEffect);
-    _soundEffects.back().setStartFrame(_currentFrame);
+    _soundEffects.insert(_currentFrame, soundEffect);
+    _soundEffects[_currentFrame].setStartFrame(_currentFrame);
 }
 
 void Movie::removeBackgroundMusic()
@@ -216,14 +231,11 @@ void Movie::removeBackgroundMusic()
 
 SoundEffect Movie::getSoundEffect (int frame) const
 {
-    auto itr = std::find_if (_soundEffects.begin(), _soundEffects.end(),
-                             [frame](SoundEffect s)->bool {return s.getStartFrame() == frame;});
-    if (itr == _soundEffects.end()) {
-        return SoundEffect();
+    if (_soundEffects.contains(frame)) {
+        return _soundEffects[frame];
     } else {
-        return *itr;
+        return SoundEffect();
     }
-
 }
 
 void Movie::removeSoundEffect (const SoundEffect &soundEffect)
@@ -305,7 +317,7 @@ bool Movie::load (const QString &filename)
             QJsonObject sfxObject (sfxArray[sfxIndex].toObject());
             SoundEffect sfx;
             sfx.load (sfxObject);
-            _soundEffects.append(sfx);
+            _soundEffects.insert(sfx.getStartFrame(), sfx);
         }
     }
     if (json.contains("backgroundMusic")) {

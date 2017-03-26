@@ -162,11 +162,24 @@ double SoundEffect::getVolume () const
 void SoundEffect::play () const
 {
     if (_out > _in) {
+        _playback.stop();
         _isPlaying = true;
         _playback.setPosition(1000 * _in);
         _playback.play();
         QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
     }
+}
+
+
+void SoundEffect::playFrom (double t) const
+{
+    if (_out > _in) {
+        _isPlaying = true;
+        _playback.setPosition(1000 * (t+_in));
+        _playback.play();
+        QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
+    }
+
 }
 
 
