@@ -47,7 +47,7 @@ private slots:
 
     void on_playButton_clicked();
 
-    void on_horizontalSlider_sliderMoved(int value);
+    void movieFrameSliderValueChanged(int value);
 
     void movieFrameChanged (unsigned int newFrame);
 

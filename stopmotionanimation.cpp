@@ -263,7 +263,7 @@ void StopMotionAnimation::on_playButton_clicked()
     }
 }
 
-void StopMotionAnimation::on_horizontalSlider_sliderMoved(int value)
+void StopMotionAnimation::movieFrameSliderValueChanged(int value)
 {
     if (value > (int)_movie->getNumberOfFrames()) {
         setState (State::LIVE);
@@ -318,6 +318,7 @@ void StopMotionAnimation::setState (State newState)
         ui->soundEffectButton->setEnabled(false);
         break;
     case State::PLAYBACK:
+        ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Stop");
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();
@@ -326,6 +327,7 @@ void StopMotionAnimation::setState (State newState)
         ui->soundEffectButton->setEnabled(false);
         break;
     case State::STILL:
+        ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Play");
         ui->cameraViewfinder->hide();
         ui->videoLabel->show();

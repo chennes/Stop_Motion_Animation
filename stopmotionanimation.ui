@@ -377,7 +377,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QSlider" name="horizontalSlider">
+       <widget class="MovieFrameSlider" name="horizontalSlider">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -420,7 +420,32 @@
    <header>QtMultimediaWidgets/QCameraViewfinder</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>MovieFrameSlider</class>
+   <extends>QSlider</extends>
+   <header>movieframeslider.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>horizontalSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>StopMotionAnimation</receiver>
+   <slot>movieFrameSliderValueChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>238</x>
+     <y>1092</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>4</x>
+     <y>1057</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>movieFrameSliderValueChanged(int)</slot>
+ </slots>
 </ui>

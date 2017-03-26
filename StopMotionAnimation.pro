@@ -31,7 +31,8 @@ SOURCES += main.cpp\
         audiojoiner.cpp \
     multiregionwaveform.cpp \
     variableselectionwaveform.cpp \
-    soundselectiondialog.cpp
+    soundselectiondialog.cpp \
+    movieframeslider.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -53,7 +54,8 @@ HEADERS  += stopmotionanimation.h \
     avexception.h \
     multiregionwaveform.h \
     variableselectionwaveform.h \
-    soundselectiondialog.h
+    soundselectiondialog.h \
+    movieframeslider.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
