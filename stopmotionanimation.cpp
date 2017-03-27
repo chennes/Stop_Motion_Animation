@@ -45,6 +45,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
 
     connect (&_backgroundMusic, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
     connect (&_soundEffects, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setSoundEffect);
+    connect (&_addToPrevious, &AddToPreviousMovieDialog::accepted, this, &StopMotionAnimation::addToPrevious);
 }
 
 StopMotionAnimation::~StopMotionAnimation()
@@ -127,11 +128,13 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
 
 void StopMotionAnimation::on_addToPreviousButton_clicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(this,
-        tr("Open Movie File"), "Image Files", tr("Stop-motion movie files (*.json);;All files (*.*)"));
+    _addToPrevious.show();
+}
 
+void StopMotionAnimation::addToPrevious ()
+{
+    QString fileName = _addToPrevious.getSelectedMovie();
     if (fileName.length() > 0) {
-
         // See if we can read it first:
         QFileInfo f (fileName);
         QString filenameNoPath = f.fileName();
@@ -268,8 +271,10 @@ void StopMotionAnimation::movieFrameSliderValueChanged(int value)
     if (value > (int)_movie->getNumberOfFrames()) {
         setState (State::LIVE);
     } else {
-        setState (State::STILL);
-        _movie->setStillFrame (value-1, ui->videoLabel);
+        if (_state != State::PLAYBACK) {
+            setState (State::STILL);
+            _movie->setStillFrame (value-1, ui->videoLabel);
+        }
     }
 }
 

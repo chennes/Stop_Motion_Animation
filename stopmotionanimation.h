@@ -10,6 +10,7 @@
 #include "settingsdialog.h"
 #include "soundselectiondialog.h"
 #include "savefinalmoviedialog.h"
+#include "addtopreviousmoviedialog.h"
 #include "previousframeoverlayeffect.h"
 
 namespace Ui {
@@ -28,6 +29,8 @@ private slots:
     void on_startNewMovieButton_clicked();
 
     void on_addToPreviousButton_clicked();
+
+    void addToPrevious ();
 
     void on_createFinalMovieButton_clicked();
 
@@ -88,7 +91,7 @@ private:
     SoundSelectionDialog _backgroundMusic;
     SoundSelectionDialog _soundEffects;
     SaveFinalMovieDialog _saveFinalMovie;
-
+    AddToPreviousMovieDialog _addToPrevious;
 
 };
 

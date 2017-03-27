@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     multiregionwaveform.cpp \
     variableselectionwaveform.cpp \
     soundselectiondialog.cpp \
-    movieframeslider.cpp
+    movieframeslider.cpp \
+    addtopreviousmoviedialog.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -55,7 +56,8 @@ HEADERS  += stopmotionanimation.h \
     multiregionwaveform.h \
     variableselectionwaveform.h \
     soundselectiondialog.h \
-    movieframeslider.h
+    movieframeslider.h \
+    addtopreviousmoviedialog.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
@@ -63,7 +65,8 @@ FORMS    += stopmotionanimation.ui \
     filenameconstructiondialog.ui \
     savefinalmoviedialog.ui \
     frameeditor.ui \
-    soundselectiondialog.ui
+    soundselectiondialog.ui \
+    addtopreviousmoviedialog.ui
 
 RESOURCES += \
     resources.qrc

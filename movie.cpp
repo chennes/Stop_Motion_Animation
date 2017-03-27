@@ -19,12 +19,13 @@
 
 const qint32 Movie::DEFAULT_FPS (15);
 
-Movie::Movie(const QString &name) :
+Movie::Movie(const QString &name, bool allowModifications) :
     _name (name),
     _numberOfFrames (0),
     _currentlyPlaying (false),
     _currentFrame (-1),
-    _computerSpeedAdjustment (-2)
+    _computerSpeedAdjustment (-2),
+    _allowModifications (allowModifications)
 {
     Settings settings;
 
@@ -49,7 +50,7 @@ Movie::~Movie ()
 {
     // If we have no frames, delete anything we have saved, including the
     // directory we would have used to store those things.
-    if (_numberOfFrames == 0) {
+    if (_numberOfFrames == 0 && _allowModifications) {
         QDir d;
         Settings settings;
         QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
@@ -65,6 +66,9 @@ Movie::~Movie ()
 
 void Movie::setName (const QString &name)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot change movie name when it is locked");
+    }
     _name = name;
 }
 
@@ -75,6 +79,9 @@ QString Movie::getName () const
 
 void Movie::addFrame (QCamera *camera)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot add frame to movie when it is locked");
+    }
     if (camera != _camera) {
         _camera = camera;
         _imageCapture = std::unique_ptr<QCameraImageCapture> (new QCameraImageCapture(camera));
@@ -95,6 +102,9 @@ void Movie::addFrame (QCamera *camera)
 
 void Movie::importFrame (const QString &filename)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot add frame to movie when it is locked");
+    }
     QString newFilename = getImageFilename (_numberOfFrames);
     bool success = QFile::copy (filename, newFilename);
     if (success) {
@@ -111,6 +121,9 @@ qint32 Movie::getNumberOfFrames () const
 
 void Movie::deleteLastFrame ()
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot remove frame from movie when it is locked");
+    }
     if (_numberOfFrames > 0) {
         QString filename = getImageFilename (_numberOfFrames-1) + "." + _encoderSettings.codec().toLower();
         QFile::remove (filename);
@@ -125,12 +138,11 @@ QString Movie::getMostRecentFrame () const
 
 void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
 {
-    if (_currentFrame != frameNumber && frameNumber < _numberOfFrames) {
+    if (frameNumber < _numberOfFrames) {
         _currentFrame = frameNumber;
         QString filename = getImageFilename (_currentFrame);
         QPixmap pix (filename);
         video->setPixmap(pix);
-        //video->setText("Frame " + QString::number(frameNumber+1));
         emit frameChanged (frameNumber);
     }
 }
@@ -215,17 +227,26 @@ void Movie::stop ()
 
 void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot add music to movie when it is locked");
+    }
     _backgroundMusic = backgroundMusic;
 }
 
 void Movie::addSoundEffect (const SoundEffect &soundEffect)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot add sound effect to movie when it is locked");
+    }
     _soundEffects.insert(_currentFrame, soundEffect);
     _soundEffects[_currentFrame].setStartFrame(_currentFrame);
 }
 
 void Movie::removeBackgroundMusic()
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot change movie when it is locked");
+    }
     _backgroundMusic = SoundEffect();
 }
 
@@ -240,6 +261,9 @@ SoundEffect Movie::getSoundEffect (int frame) const
 
 void Movie::removeSoundEffect (const SoundEffect &soundEffect)
 {
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot change movie when it is locked");
+    }
     auto itr = std::find(_soundEffects.begin(), _soundEffects.end(), soundEffect);
     if (itr != _soundEffects.end()) {
         _soundEffects.erase(itr);
@@ -249,7 +273,7 @@ void Movie::removeSoundEffect (const SoundEffect &soundEffect)
 
 void Movie::save () const
 {
-    if (_numberOfFrames > 0) {
+    if (_numberOfFrames > 0 && _allowModifications) {
         auto filename = getSaveFilename ();
         QFile saveFile (filename);
         bool isOpen = saveFile.open(QIODevice::WriteOnly);

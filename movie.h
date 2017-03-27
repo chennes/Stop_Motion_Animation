@@ -22,13 +22,15 @@ class Movie : public QObject
     Q_OBJECT
 
 public:
-    Movie(const QString &name = "");
+    Movie(const QString &name = "", bool allowModifications = true);
 
     ~Movie ();
 
     void setName (const QString &name);
 
     QString getName () const;
+
+    QString getSaveFilename () const;
 
     void addFrame (QCamera *camera);
 
@@ -87,8 +89,6 @@ protected:
 
     QString getBaseFilename () const;
 
-    QString getSaveFilename () const;
-
     QString getImageFilename (int frame) const;
 
     void CreatePreTitle(avcodecWrapper &encoder) const;
@@ -104,6 +104,7 @@ private:
     qint32 _framesPerSecond;
     QMap<int,SoundEffect> _soundEffects;
     SoundEffect _backgroundMusic;
+    bool _allowModifications;
 
     QCamera *_camera;
     QImageEncoderSettings _encoderSettings;
