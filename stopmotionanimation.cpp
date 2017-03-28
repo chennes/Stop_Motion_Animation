@@ -109,16 +109,9 @@ void StopMotionAnimation::on_startNewMovieButton_clicked()
         _camera->setViewfinderSettings(_viewFinderSettings);
         _camera->setCaptureMode(QCamera::CaptureStillImage);
         _camera->start();
-
-        ui->takePhotoButton->setDisabled(false);
-        ui->takePhotoButton->setDefault(true);
-
     } else {
         // This should display an error of some kind...
         ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
-        ui->videoLabel->show();
-        ui->cameraViewfinder->hide();
-        ui->takePhotoButton->setDisabled(true);
     }
 
     setState (State::LIVE);
@@ -311,15 +304,17 @@ void StopMotionAnimation::setState (State newState)
         if (_camera) {
             ui->videoLabel->hide();
             ui->cameraViewfinder->show();
+            ui->takePhotoButton->setDefault(true);
+            ui->takePhotoButton->setEnabled(true);
         } else {
             ui->videoLabel->show();
             ui->cameraViewfinder->hide();
+            ui->takePhotoButton->setDefault(false);
+            ui->takePhotoButton->setEnabled(false);
         }
         ui->frameNumberLabel->setText("(Live)");
         ui->playButton->setText("Play");
         ui->horizontalSlider->setValue(_movie->getNumberOfFrames()+1);
-        ui->takePhotoButton->setDefault(true);
-        ui->takePhotoButton->setEnabled(true);
         ui->soundEffectButton->setEnabled(false);
         break;
     case State::PLAYBACK:
@@ -401,7 +396,7 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
             }
             handled = true;
         } else if (keyEvent->key() == Qt::Key_Space) {
-            if (_state == State::LIVE) {
+            if (_state == State::LIVE && _camera) {
                 ui->takePhotoButton->click();
             } else {
                 ui->playButton->click();
