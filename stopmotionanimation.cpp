@@ -5,6 +5,7 @@
 #include <QtMultimedia/QCameraInfo>
 #include <QKeyEvent>
 #include <QFileDialog>
+#include <QDesktopServices>
 #include "settings.h"
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
@@ -159,6 +160,7 @@ void StopMotionAnimation::saveFinalMovieAccepted()
     QString credits = _saveFinalMovie.credits();
     try {
         _movie->encodeToFile (filename, title, credits);
+        QDesktopServices::openUrl (QUrl::fromLocalFile(filename));
     } catch (const Movie::EncodingFailedException &e) {
         _errorDialog.showMessage(e.message());
     }
