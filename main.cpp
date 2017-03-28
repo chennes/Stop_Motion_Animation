@@ -21,10 +21,11 @@ int main(int argc, char *argv[])
     // Show the splashscreen:
     QPixmap pixmap(":/images/splashscreen.png");
     QSplashScreen splash(pixmap);
-    StopMotionAnimation w;
     splash.show();
+    a.processEvents();
     QTime now;
     now.start();
+    StopMotionAnimation w;
     while (now.elapsed() < SPLASH_SECONDS*1000 &&
            splash.isVisible()) {
         // This is here to handle mouse clicks, which will dismiss the window

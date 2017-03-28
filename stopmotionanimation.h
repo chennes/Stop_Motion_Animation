@@ -25,6 +25,8 @@ public:
     explicit StopMotionAnimation(QWidget *parent = 0);
     ~StopMotionAnimation();
 
+    void startNewMovie ();
+
 private slots:
     void on_startNewMovieButton_clicked();
 

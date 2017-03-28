@@ -6,7 +6,11 @@
 #include <QKeyEvent>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QMessageBox>
 #include "settings.h"
+
+#include <memory>
+
 
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
@@ -23,7 +27,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     int h = settings.Get("settings/imageHeight").toInt();
     QSize resolution (w,h);
     _viewFinderSettings.setResolution(resolution);
-    on_startNewMovieButton_clicked();
+    startNewMovie();
     adjustSize();
     _overlayEffect = new PreviousFrameOverlayEffect();
     ui->cameraViewfinder->setGraphicsEffect(_overlayEffect);
@@ -62,6 +66,14 @@ StopMotionAnimation::~StopMotionAnimation()
 }
 
 void StopMotionAnimation::on_startNewMovieButton_clicked()
+{
+    std::unique_ptr<QMessageBox> message (new QMessageBox(QMessageBox::Information, "Loading", "Connecting to your camera, just a moment...", QMessageBox::Ok));
+    message->show();
+    QApplication::processEvents();
+    startNewMovie ();
+}
+
+void StopMotionAnimation::startNewMovie ()
 {
     // Generate a new timestamp
     QDateTime local(QDateTime::currentDateTime());
