@@ -48,3 +48,7 @@ Image Files
 # User settings from Qt Creator
 StopMotionAnimation.pro.user*
 StopMotionAnimation.pro-*
+StopMotionAnimation.pro.user
+
+# Autosave files
+*.autosave
