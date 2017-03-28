@@ -171,6 +171,9 @@ void StopMotionAnimation::saveFinalMovieAccepted()
     QString title = _saveFinalMovie.movieTitle();
     QString credits = _saveFinalMovie.credits();
     try {
+        std::unique_ptr<QMessageBox> message (new QMessageBox(QMessageBox::Information, "Encoding", "Creating your movie, just a moment...", QMessageBox::Ok));
+        message->show();
+        QApplication::processEvents();
         _movie->encodeToFile (filename, title, credits);
         QDesktopServices::openUrl (QUrl::fromLocalFile(filename));
     } catch (const Movie::EncodingFailedException &e) {
