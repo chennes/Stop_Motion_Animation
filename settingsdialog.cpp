@@ -19,7 +19,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 
     // File formats:
     QList<QByteArray> formats = QImageWriter::supportedImageFormats();
-    foreach (const QByteArray &format, formats) {
+    for (auto format: formats) {
         QString formatString (format);
         // Right now our camera will only output JPG, so only list that one.
         if (formatString.toUpper() == "JPG") {
@@ -38,7 +38,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
     ui->cameraCombo->addItem ("Always use default");
     ui->cameraCombo->insertSeparator(1);
-    foreach (const QCameraInfo &camera, cameras) {
+    for (auto camera: cameras) {
         ui->cameraCombo->addItem (camera.description());
     }
 

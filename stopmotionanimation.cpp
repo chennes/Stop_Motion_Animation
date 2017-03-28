@@ -178,7 +178,7 @@ void StopMotionAnimation::on_importButton_clicked()
     QString imageFileType = settings.Get("settings/imageFileType").toString().toLower();
     QDir directory (name, "*."+imageFileType);
     QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
-    foreach (const QString &filename, fileList) {
+    for (auto filename: fileList) {
         try {
             _movie->importFrame(name + "/" + filename);
             updateInterfaceForNewFrame();

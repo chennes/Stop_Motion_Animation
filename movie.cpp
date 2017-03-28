@@ -286,7 +286,7 @@ void Movie::save () const
         json["framesPerSecond"] = _framesPerSecond;
 
         QJsonArray sfxArray;
-        foreach (const SoundEffect sfx, _soundEffects) {
+        for (auto sfx: _soundEffects) {
             QJsonObject sfxObject;
             sfx.save (sfxObject);
             sfxArray.append(sfxObject);
@@ -368,7 +368,7 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     if (_backgroundMusic) {
         encoder.AddAudioFile(_backgroundMusic);
     }
-    foreach (const SoundEffect &sfx, _soundEffects) {
+    for (auto sfx: _soundEffects) {
         encoder.AddAudioFile(sfx);
     }
     int w = settings.Get("settings/imageWidth").toInt();
