@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QErrorMessage>
 #include <QtMultimedia/QCamera>
+#include <QtMultimedia/QCameraInfo>
 #include "movie.h"
 #include "soundeffect.h"
 #include "helpdialog.h"
@@ -12,6 +13,7 @@
 #include "savefinalmoviedialog.h"
 #include "addtopreviousmoviedialog.h"
 #include "previousframeoverlayeffect.h"
+#include "cameramonitor.h"
 
 namespace Ui {
 class StopMotionAnimation;
@@ -31,6 +33,8 @@ private slots:
     void on_startNewMovieButton_clicked();
 
     void on_addToPreviousButton_clicked();
+
+    void cameraLost ();
 
     void addToPrevious ();
 
@@ -80,6 +84,8 @@ protected:
 
 private:
     QCamera *_camera;
+    QCameraInfo _cameraInfo;
+    CameraMonitor *_cameraMonitor;
     QCameraViewfinderSettings _viewFinderSettings;
     QErrorMessage _errorDialog;
     std::unique_ptr<Movie> _movie;

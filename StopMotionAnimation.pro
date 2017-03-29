@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     variableselectionwaveform.cpp \
     soundselectiondialog.cpp \
     movieframeslider.cpp \
-    addtopreviousmoviedialog.cpp
+    addtopreviousmoviedialog.cpp \
+    cameramonitor.cpp
 
 HEADERS  += stopmotionanimation.h \
     movie.h \
@@ -57,7 +58,8 @@ HEADERS  += stopmotionanimation.h \
     variableselectionwaveform.h \
     soundselectiondialog.h \
     movieframeslider.h \
-    addtopreviousmoviedialog.h
+    addtopreviousmoviedialog.h \
+    cameramonitor.h
 
 FORMS    += stopmotionanimation.ui \
     helpdialog.ui \
@@ -106,4 +108,3 @@ win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswresample
 win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/swresample.lib
 else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libswresample.a
 
-DISTFILES +=

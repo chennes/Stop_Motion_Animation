@@ -61,6 +61,10 @@ StopMotionAnimation::~StopMotionAnimation()
     if (_camera) {
         delete _camera;
     }
+    if (_cameraMonitor) {
+        _cameraMonitor->requestInterruption();
+        _cameraMonitor->wait(1000);
+    }
     delete _overlayEffect;
     delete ui;
 }
@@ -78,8 +82,8 @@ void StopMotionAnimation::startNewMovie ()
     // Generate a new timestamp
     QDateTime local(QDateTime::currentDateTime());
     Settings settings;
-    QString imageFilenameFormat = settings.Get("settings/imageFilenameFormat").toString();
-    QString timestamp = local.toString (imageFilenameFormat);
+    auto imageFilenameFormat = settings.Get("settings/imageFilenameFormat").toString();
+    auto timestamp = local.toString (imageFilenameFormat);
     if (timestamp.length() == 0) {
         timestamp = local.toString ("yyyy-MM-dd-hh-mm-ss");
     }
@@ -99,29 +103,41 @@ void StopMotionAnimation::startNewMovie ()
         delete _camera;
         _camera = NULL;
     }
+    if (_cameraMonitor) {
+        _cameraMonitor->requestInterruption();
+        _cameraMonitor->wait(1000);
+        delete _cameraMonitor;
+        _cameraMonitor = NULL;
+    }
     _movie = std::unique_ptr<Movie> (new Movie (timestamp));
     connect (_movie.get(), &Movie::frameChanged,
              this, &StopMotionAnimation::movieFrameChanged);
 
-    QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
-    QString requestedCamera = settings.Get("settings/camera").toString();
+    auto cameras = QCameraInfo::availableCameras();
+    auto requestedCamera = settings.Get("settings/camera").toString();
 
     if (!cameras.empty()) {
 
         _camera = NULL;
-        for (auto camera = cameras.begin(); camera!= cameras.end(); ++camera) {
-            if (camera->description() == requestedCamera) {
-                _camera = new QCamera(*camera);
+        for (auto camera: cameras) {
+            if (camera.description() == requestedCamera) {
+                _camera = new QCamera(camera);
+                _cameraInfo = camera;
                 break;
             }
         }
         if (!_camera) {
             _camera = new QCamera(cameras.back());
+            _cameraInfo = cameras.back();
         }
+        _cameraMonitor = new CameraMonitor (this, _cameraInfo);
+        connect (_cameraMonitor, &CameraMonitor::cameraLost, this, &StopMotionAnimation::cameraLost);
+        connect (_cameraMonitor, &CameraMonitor::finished, _cameraMonitor, &QObject::deleteLater);
         _camera->setViewfinder (ui->cameraViewfinder);
         _camera->setViewfinderSettings(_viewFinderSettings);
         _camera->setCaptureMode(QCamera::CaptureStillImage);
         _camera->start();
+        _cameraMonitor->start();
     } else {
         // This should display an error of some kind...
         ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
@@ -130,6 +146,21 @@ void StopMotionAnimation::startNewMovie ()
     setState (State::LIVE);
     updateInterfaceForNewFrame();
     adjustSize();
+}
+
+void StopMotionAnimation::cameraLost ()
+{
+    if (_camera) {
+        delete _camera;
+        _camera = NULL;
+        ui->videoLabel->setText("<big><b>ERROR:</b> Camera disconnected. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
+        setState (State::LIVE);
+        updateInterfaceForNewFrame();
+    }
+    _cameraMonitor->requestInterruption();
+    _cameraMonitor->wait(1000);
+    delete _cameraMonitor;
+    _cameraMonitor = NULL;
 }
 
 void StopMotionAnimation::on_addToPreviousButton_clicked()
@@ -324,8 +355,8 @@ void StopMotionAnimation::setState (State newState)
             ui->takePhotoButton->setDefault(true);
             ui->takePhotoButton->setEnabled(true);
         } else {
-            ui->videoLabel->show();
             ui->cameraViewfinder->hide();
+            ui->videoLabel->show();
             ui->takePhotoButton->setDefault(false);
             ui->takePhotoButton->setEnabled(false);
         }
