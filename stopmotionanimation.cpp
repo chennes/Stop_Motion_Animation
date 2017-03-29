@@ -16,6 +16,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
     _camera(NULL),
+    _cameraMonitor (NULL),
     _backgroundMusic (SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
     _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
