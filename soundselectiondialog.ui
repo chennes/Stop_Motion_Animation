@@ -48,10 +48,10 @@
          <item>
           <widget class="QSlider" name="volumeSlider">
            <property name="maximum">
-            <number>200</number>
+            <number>100</number>
            </property>
            <property name="sliderPosition">
-            <number>100</number>
+            <number>50</number>
            </property>
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -61,6 +61,9 @@
            </property>
            <property name="tickPosition">
             <enum>QSlider::TicksBothSides</enum>
+           </property>
+           <property name="tickInterval">
+            <number>5</number>
            </property>
           </widget>
          </item>
@@ -75,14 +78,14 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>200%</string>
+              <string>100%</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="label_3">
              <property name="text">
-              <string>100%</string>
+              <string>50%</string>
              </property>
             </widget>
            </item>

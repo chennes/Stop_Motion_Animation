@@ -12,6 +12,8 @@ public:
 
     void ClearRegions ();
 
+    void DoneAddingRegions ();
+
     virtual void reset ();
 
     // Events we need to handle
@@ -42,6 +44,7 @@ private:
     bool _currentlyDraggingSelection;
     int _dragStartX;
     QTime _dragStartTime;
+    bool _locked;
 };
 
 #endif // MULTIREGIONWAVEFORM_H

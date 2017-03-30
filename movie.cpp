@@ -97,6 +97,7 @@ void Movie::addFrame (QCamera *camera)
             throw CaptureFailedException ("Image capture failed: " + _imageCapture->errorString());
         }
         _numberOfFrames++;
+        save();
     }
 }
 
@@ -109,6 +110,7 @@ void Movie::importFrame (const QString &filename)
     bool success = QFile::copy (filename, newFilename);
     if (success) {
         _numberOfFrames++;
+        save();
     } else {
         throw Movie::ImportFailedException ();
     }
@@ -128,6 +130,7 @@ void Movie::deleteLastFrame ()
         QString filename = getImageFilename (_numberOfFrames-1) + "." + _encoderSettings.codec().toLower();
         QFile::remove (filename);
         _numberOfFrames--;
+        save();
     }
 }
 
@@ -231,6 +234,7 @@ void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
         throw NoChangesNowException ("Cannot add music to movie when it is locked");
     }
     _backgroundMusic = backgroundMusic;
+    save();
 }
 
 void Movie::addSoundEffect (const SoundEffect &soundEffect)
@@ -240,6 +244,7 @@ void Movie::addSoundEffect (const SoundEffect &soundEffect)
     }
     _soundEffects.insert(_currentFrame, soundEffect);
     _soundEffects[_currentFrame].setStartFrame(_currentFrame);
+    save();
 }
 
 void Movie::removeBackgroundMusic()
@@ -248,6 +253,7 @@ void Movie::removeBackgroundMusic()
         throw NoChangesNowException ("Cannot change movie when it is locked");
     }
     _backgroundMusic = SoundEffect();
+    save();
 }
 
 SoundEffect Movie::getBackgroundMusic () const
@@ -272,6 +278,7 @@ void Movie::removeSoundEffect (const SoundEffect &soundEffect)
     auto itr = std::find(_soundEffects.begin(), _soundEffects.end(), soundEffect);
     if (itr != _soundEffects.end()) {
         _soundEffects.erase(itr);
+        save();
     }
 }
 

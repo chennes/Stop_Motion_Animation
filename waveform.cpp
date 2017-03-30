@@ -17,8 +17,10 @@ Waveform::Waveform(QWidget *parent) :
     _scene.setSceneRect(0,0,this->width(), this->height());
     QPen cursorPen (QColor(0,0,0,100));
     _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
+    _cursorLine->setZValue(1000);
     QPen playheadPen (QColor(0,0,0,200));
     _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
+    _playheadLine->setZValue(999);
     _cursorLine->hide();
     _playheadLine->hide();
 
@@ -178,9 +180,15 @@ void Waveform::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent (event);
 }
 
-void Waveform::resizeEvent(QResizeEvent *event)
+void Waveform::resizeEvent(QResizeEvent *)
 {
     _scene.setSceneRect(this->rect());
+    QPen cursorPen (QColor(0,0,0,100));
+    _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
+    _cursorLine->setZValue(1000);
+    QPen playheadPen (QColor(0,0,0,200));
+    _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
+    _playheadLine->setZValue(999);
 }
 
 qint64 Waveform::pixelsToMillis(int pixels) const

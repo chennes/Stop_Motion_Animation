@@ -117,7 +117,12 @@ void SoundSelectionDialog::readFinished ()
     if (_sfx) {
         _waveform->setSelectionStart (_sfx.getInPoint()*1000);
         _waveform->setSelectionLength ((_sfx.getOutPoint()-_sfx.getInPoint())*1000);
-        ui->volumeSlider->setValue (_sfx.getVolume() * 100);
+
+        double logVolume = QAudio::convertVolume(_sfx.getVolume(),
+                                                      QAudio::LinearVolumeScale,
+                                                      QAudio::LogarithmicVolumeScale);
+
+        ui->volumeSlider->setValue (qRound(logVolume * 100));
     } else {
         _waveform->setSelectionStart(0);
         _waveform->setSelectionLength(0);
@@ -140,6 +145,7 @@ void SoundSelectionDialog::readFinished ()
         w->AddRegion("Movie", offset, offset+movieDuration*1000, Qt::blue);
         offset += movieDuration*1000;
         w->AddRegion("Credits", offset, offset+creditsDuration*1000, Qt::black);
+        w->DoneAddingRegions();
     }
     _musicSet = true;
 }
@@ -233,11 +239,11 @@ void SoundSelectionDialog::on_rewindButton_clicked()
 SoundEffect SoundSelectionDialog::getSelectedSound () const
 {
     if (_musicSet) {
-        double in = (double)_waveform->getSelectionStart() / 1000.0;
-        double out = in + (double)_waveform->getSelectionLength() / 1000.0;
-        double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(200.0),
+        double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(100.0),
                                                       QAudio::LogarithmicVolumeScale,
                                                       QAudio::LinearVolumeScale);
+        double in = (double)_waveform->getSelectionStart() / 1000.0;
+        double out = in + (double)_waveform->getSelectionLength() / 1000.0;
         return SoundEffect (_filename, 0, in, out, linearVolume);
     } else {
         return SoundEffect ();
@@ -255,7 +261,7 @@ void SoundSelectionDialog::setSound (const SoundEffect &sfx)
 
 void SoundSelectionDialog::on_volumeSlider_valueChanged(int value)
 {
-    qreal linearVolume = QAudio::convertVolume(value / qreal(200.0),
+    qreal linearVolume = QAudio::convertVolume(value / qreal(100.0),
                                                   QAudio::LogarithmicVolumeScale,
                                                   QAudio::LinearVolumeScale);
     _player->setVolume (qRound(linearVolume * 100));

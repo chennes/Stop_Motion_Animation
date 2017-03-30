@@ -9,19 +9,23 @@
 MultiRegionWaveform::MultiRegionWaveform(QWidget *parent) :
     Waveform (parent),
     _group (nullptr),
-    _currentlyDraggingSelection (false)
+    _currentlyDraggingSelection (false),
+    _locked (false)
 {
 }
 
 void MultiRegionWaveform::AddRegion (QString name, qint64 startMillis, qint64 endMillis, QColor color)
 {
+    if (_locked) {
+        throw std::logic_error("Cannot add regions when MultiRegionWaveform is locked. Call Reset or ClearRegions first.");
+    }
     _regions.push_back(Region());
     auto &&r = _regions.back();
     r.startMillis = startMillis;
     r.endMillis = endMillis;
     if (_totalLength > 0) {
         r.pixelWidth = _scene.width() * (double(endMillis-startMillis)/_totalLength);
-        r.pixelStart = _selectionStart + _scene.width() * (double(startMillis)/_totalLength);
+        r.pixelStart = _scene.width() * (double(startMillis)/_totalLength);
     }
     r.penColor = color;
     r.brushColor = QColor (color.red(), color.green(), color.blue(), 0.3 * color.alpha());
@@ -54,8 +58,17 @@ void MultiRegionWaveform::AddRegion (QString name, qint64 startMillis, qint64 en
             r.text->setY(r.text->y()+r.text->boundingRect().height()+1);
         }
     }
-    qint64 currentMillis = getSelectionLength();
-    setSelectionLength(std::max (currentMillis, endMillis));
+}
+
+void MultiRegionWaveform::DoneAddingRegions ()
+{
+    int64_t selectionMillis (0);
+    for (auto region: _regions) {
+        selectionMillis = std::max (selectionMillis, region.endMillis);
+    }
+    this->setSelectionLength(selectionMillis);
+    _group->setX(_selectionStart);
+    _locked = true;
 }
 
 void MultiRegionWaveform::ClearRegions ()
@@ -65,9 +78,11 @@ void MultiRegionWaveform::ClearRegions ()
         _group->removeFromGroup(r.rect);
         _scene.removeItem(r.text);
         _scene.removeItem(r.rect);
+        _scene.removeItem(_group);
     }
     _regions.clear();
     _group = NULL;
+    _locked = false;
 }
 
 void MultiRegionWaveform::reset()
