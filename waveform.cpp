@@ -178,7 +178,10 @@ void Waveform::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent (event);
 }
 
-
+void Waveform::resizeEvent(QResizeEvent *event)
+{
+    _scene.setSceneRect(this->rect());
+}
 
 qint64 Waveform::pixelsToMillis(int pixels) const
 {

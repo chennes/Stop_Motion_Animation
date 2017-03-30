@@ -250,6 +250,11 @@ void Movie::removeBackgroundMusic()
     _backgroundMusic = SoundEffect();
 }
 
+SoundEffect Movie::getBackgroundMusic () const
+{
+    return _backgroundMusic;
+}
+
 SoundEffect Movie::getSoundEffect (int frame) const
 {
     if (_soundEffects.contains(frame)) {

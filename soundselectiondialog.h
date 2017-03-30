@@ -34,6 +34,7 @@ public:
 
     SoundEffect getSelectedSound () const;
 
+    void setSound (const SoundEffect &sfx);
 
 protected:
     virtual void showEvent(QShowEvent * event);
@@ -62,9 +63,9 @@ private:
     Mode _mode;
     QString _filename;
     QAudioDecoder *_decoder;
-    QGraphicsScene *_scene;
     QMediaPlayer *_player;
     Waveform *_waveform;
+    SoundEffect _sfx;
     double _movieDuration;
     bool _musicSet;
 };

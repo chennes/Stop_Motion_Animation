@@ -67,7 +67,7 @@ void MultiRegionWaveform::ClearRegions ()
         _scene.removeItem(r.rect);
     }
     _regions.clear();
-    _group = nullptr;
+    _group = NULL;
 }
 
 void MultiRegionWaveform::reset()

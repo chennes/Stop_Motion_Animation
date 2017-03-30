@@ -278,6 +278,7 @@ void StopMotionAnimation::on_backgroundMusicButton_clicked()
     Settings settings;
     qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
     _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
+    _backgroundMusic.setSound (_movie->getBackgroundMusic());
     _backgroundMusic.show();
 }
 
@@ -294,7 +295,11 @@ void StopMotionAnimation::setSoundEffect()
 
 void StopMotionAnimation::on_soundEffectButton_clicked()
 {
-    _soundEffects.show();
+    if (_state == State::STILL) {
+        int frame = ui->frameLabel->text().toInt() - 1;
+        _soundEffects.setSound(_movie->getSoundEffect(frame));
+        _soundEffects.show();
+    }
 }
 
 void StopMotionAnimation::on_playButton_clicked()

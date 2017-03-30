@@ -39,10 +39,17 @@ SoundSelectionDialog::SoundSelectionDialog(Mode mode, QWidget *parent) :
     connect(_player, &QMediaPlayer::positionChanged, this, &SoundSelectionDialog::playerPositionChanged);
     connect(_player, &QMediaPlayer::stateChanged, this, &SoundSelectionDialog::playerStateChanged);
     connect(_waveform, &Waveform::playheadManuallyChanged, this, &SoundSelectionDialog::setPlayhead);
+
+    _decoder = new QAudioDecoder(this);
+    connect (_decoder, &QAudioDecoder::bufferReady, this, &SoundSelectionDialog::readBuffer);
+    connect (_decoder, &QAudioDecoder::finished, this, &SoundSelectionDialog::readFinished);
 }
 
 SoundSelectionDialog::~SoundSelectionDialog()
 {
+    delete _decoder;
+    delete _player;
+    delete _waveform;
     delete ui;
 }
 
@@ -85,11 +92,6 @@ void SoundSelectionDialog::loadFile (const QString &filename)
     desiredFormat.setSampleRate(48000);
     desiredFormat.setSampleSize(16);
 
-    if (!_decoder) {
-        _decoder = new QAudioDecoder(this);
-        QObject::connect (_decoder, &QAudioDecoder::bufferReady, this, &SoundSelectionDialog::readBuffer);
-        QObject::connect (_decoder, &QAudioDecoder::finished, this, &SoundSelectionDialog::readFinished);
-    }
     _decoder->setAudioFormat(desiredFormat);
     _decoder->setSourceFilename(filename);
     _waveform->reset();
@@ -111,9 +113,16 @@ void SoundSelectionDialog::readBuffer ()
 void SoundSelectionDialog::readFinished ()
 {
     Settings settings;
-    _waveform->setSelectionStart(0);
-    _waveform->setSelectionLength(0);
     _waveform->setDuration(_decoder->duration());
+    if (_sfx) {
+        _waveform->setSelectionStart (_sfx.getInPoint()*1000);
+        _waveform->setSelectionLength ((_sfx.getOutPoint()-_sfx.getInPoint())*1000);
+        ui->volumeSlider->setValue (_sfx.getVolume() * 100);
+    } else {
+        _waveform->setSelectionStart(0);
+        _waveform->setSelectionLength(0);
+        ui->volumeSlider->setValue (100);
+    }
 
     if (_mode==Mode::BACKGROUND_MUSIC) {
         double preTitleDuration = settings.Get("settings/preTitleScreenDuration").toDouble();
@@ -132,8 +141,6 @@ void SoundSelectionDialog::readFinished ()
         offset += movieDuration*1000;
         w->AddRegion("Credits", offset, offset+creditsDuration*1000, Qt::black);
     }
-
-    _decoder->disconnect();
     _musicSet = true;
 }
 
@@ -214,6 +221,7 @@ void SoundSelectionDialog::on_removeMusicButton_clicked()
     ui->rewindButton->setDisabled(true);
     _waveform->reset();
     _musicSet = false;
+    _sfx = SoundEffect();
 }
 
 void SoundSelectionDialog::on_rewindButton_clicked()
@@ -233,6 +241,15 @@ SoundEffect SoundSelectionDialog::getSelectedSound () const
         return SoundEffect (_filename, 0, in, out, linearVolume);
     } else {
         return SoundEffect ();
+    }
+}
+
+void SoundSelectionDialog::setSound (const SoundEffect &sfx)
+{
+    if (sfx) {
+        _sfx = sfx;
+        loadFile (sfx.getFilename());
+        _musicSet = true; // Make sure to set this here to prevent the File dialog from opening
     }
 }
 

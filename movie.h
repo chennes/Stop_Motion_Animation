@@ -50,7 +50,7 @@ public:
 
     void addBackgroundMusic (const SoundEffect &backgroundMusic);
 
-    SoundEffect getSelectedSound () const;
+    SoundEffect getBackgroundMusic () const;
 
     void addSoundEffect (const SoundEffect &soundEffect);
 
