@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Help with PLS Stop Motion Creator</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

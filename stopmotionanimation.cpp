@@ -52,6 +52,12 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     connect (&_backgroundMusic, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
     connect (&_soundEffects, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setSoundEffect);
     connect (&_addToPrevious, &AddToPreviousMovieDialog::accepted, this, &StopMotionAnimation::addToPrevious);
+
+    // Remove the Help icon menu from the Help dialog
+    Qt::WindowFlags flags = _help.windowFlags();
+    Qt::WindowFlags helpFlag = Qt::WindowContextHelpButtonHint;
+    flags = flags & (~helpFlag);
+    _help.setWindowFlags(flags);
 }
 
 StopMotionAnimation::~StopMotionAnimation()
