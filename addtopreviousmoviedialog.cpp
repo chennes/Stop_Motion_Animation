@@ -154,3 +154,14 @@ void AddToPreviousMovieDialog::on_horizontalSlider_valueChanged(int value)
         }
     }
 }
+
+void AddToPreviousMovieDialog::on_treeWidget_doubleClicked(const QModelIndex &)
+{
+    auto selection = ui->treeWidget->selectedItems();
+    if (selection.size() > 0) {
+        auto movie = _itemToMovieMap[selection[0]];
+        if (movie) {
+            this->accept();
+        }
+    }
+}

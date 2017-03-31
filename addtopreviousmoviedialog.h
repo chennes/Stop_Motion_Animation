@@ -30,6 +30,8 @@ private slots:
 
     void on_horizontalSlider_valueChanged(int value);
 
+    void on_treeWidget_doubleClicked(const QModelIndex &index);
+
 protected:
     virtual void showEvent(QShowEvent *)  ;
 
