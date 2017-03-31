@@ -26,6 +26,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="startNewMovieButton">
+        <property name="toolTip">
+         <string>Begin working on a new movie (keeping the current one saved)</string>
+        </property>
         <property name="text">
          <string>Save and start a new movie</string>
         </property>
@@ -36,6 +39,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="addToPreviousButton">
+        <property name="toolTip">
+         <string>Open a movie that you've already started and keep working on it</string>
+        </property>
         <property name="text">
          <string>Work on previous movie</string>
         </property>
@@ -46,6 +52,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="createFinalMovieButton">
+        <property name="toolTip">
+         <string>Create a movie file that can be shared with others (via YouTube, Facebook, etc.)</string>
+        </property>
         <property name="text">
          <string>Create final movie</string>
         </property>
@@ -69,6 +78,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="importButton">
+        <property name="toolTip">
+         <string>Import images and add them to the end of the current movie</string>
+        </property>
         <property name="text">
          <string>Import</string>
         </property>
@@ -79,6 +91,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="settingButton">
+        <property name="toolTip">
+         <string>Open the Settings window</string>
+        </property>
         <property name="text">
          <string>Settings</string>
         </property>
@@ -89,6 +104,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="helpButton">
+        <property name="toolTip">
+         <string>Get help with the program, and with stop motion animation in general</string>
+        </property>
         <property name="text">
          <string>Help</string>
         </property>
@@ -166,6 +184,9 @@
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QPushButton" name="takePhotoButton">
+          <property name="toolTip">
+           <string>Capture a single frame of a stop motion animation</string>
+          </property>
           <property name="text">
            <string>Take photo (spacebar)</string>
           </property>
@@ -190,6 +211,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="deletePhotoButton">
+          <property name="toolTip">
+           <string>Delete the last photo you took</string>
+          </property>
           <property name="text">
            <string>Delete last photo</string>
           </property>
@@ -216,6 +240,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="backgroundMusicButton">
+          <property name="toolTip">
+           <string>Add background music to your movie</string>
+          </property>
           <property name="text">
            <string>Add background music...</string>
           </property>
@@ -226,6 +253,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="soundEffectButton">
+          <property name="toolTip">
+           <string>Add a sound effect that starts at this frame of your movie</string>
+          </property>
           <property name="text">
            <string>Add sound effect...</string>
           </property>
