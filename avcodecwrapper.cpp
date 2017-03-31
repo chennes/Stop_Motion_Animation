@@ -439,11 +439,17 @@ void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
         int ret = avcodec_decode_video2(cc, pict, &frameFinished, &packet);
         if (ret > 0) {
             pict->quality = 1;
-            return;
+            break;
         } else {
             throw libavException ("Error while decoding the frame: " + avErrorToQString(ret));
         }
     }
+    for (unsigned int i = 0; i < fc->nb_streams; i++) {
+        if (fc->streams[i]->codec->codec_id != AV_CODEC_ID_NONE) {
+            avcodec_close(fc->streams[i]->codec);
+        }
+    }
+    avformat_close_input (&fc);
 }
 
 AVFrame *avcodecWrapper::get_video_frame(OutputStream *ost)

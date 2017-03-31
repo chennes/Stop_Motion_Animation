@@ -216,20 +216,22 @@ void StopMotionAnimation::saveFinalMovieAccepted()
 void StopMotionAnimation::on_importButton_clicked()
 {
     QString name = QFileDialog::getExistingDirectory();
-    Settings settings;
-    QString imageFileType = settings.Get("settings/imageFileType").toString().toLower();
-    QDir directory (name, "*."+imageFileType);
-    QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
-    for (auto filename: fileList) {
-        try {
-            _movie->importFrame(name + "/" + filename);
-            updateInterfaceForNewFrame();
-        } catch (Movie::ImportFailedException &) {
-            _errorDialog.showMessage("Failed to import the file " + filename);
-            return;
+    if (name.length() > 0) {
+        Settings settings;
+        QString imageFileType = settings.Get("settings/imageFileType").toString().toLower();
+        QDir directory (name, "*."+imageFileType);
+        QStringList fileList = directory.entryList (QDir::NoFilter, QDir::Name);
+        for (auto filename: fileList) {
+            try {
+                _movie->importFrame(name + "/" + filename);
+                updateInterfaceForNewFrame();
+            } catch (Movie::ImportFailedException &) {
+                _errorDialog.showMessage("Failed to import the file " + filename);
+                return;
+            }
         }
+        updateInterfaceForNewFrame();
     }
-    updateInterfaceForNewFrame();
 }
 
 void StopMotionAnimation::on_settingButton_clicked()

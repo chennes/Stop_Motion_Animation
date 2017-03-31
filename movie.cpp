@@ -62,6 +62,11 @@ Movie::~Movie ()
             }
         }
     }
+
+    for (auto tempFile: _encodingTempFiles) {
+        QFile f (tempFile);
+        f.remove();
+    }
 }
 
 void Movie::setName (const QString &name)
@@ -368,6 +373,12 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     Settings settings;
     avcodecWrapper encoder;
 
+    for (auto tempFile: _encodingTempFiles) {
+        QFile f (tempFile);
+        f.remove();
+    }
+    _encodingTempFiles.clear();
+
     // Video frames first:
     CreatePreTitle(encoder);
     CreateTitle(encoder, title);
@@ -393,6 +404,14 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     } catch (const avcodecWrapper::libavException &e) {
         throw EncodingFailedException (e.message());
     }
+
+    for (auto tempFile: _encodingTempFiles) {
+        QFile f (tempFile);
+        if (!f.remove()) {
+            qDebug() << "Failed to remove " << tempFile;
+        }
+    }
+    _encodingTempFiles.clear();
 }
 
 
@@ -446,6 +465,7 @@ void Movie::CreateTitle(avcodecWrapper &encoder, const QString &title) const
 
         QString titleScreenFilename = getBaseFilename() + "_titleScreen.jpg";
         img.save(titleScreenFilename);
+        _encodingTempFiles.append(titleScreenFilename);
         int numberOfFrames = int(std::round(_framesPerSecond * duration));
         for (int frame = 0; frame < numberOfFrames; frame++) {
             encoder.AddVideoFrame(titleScreenFilename);
@@ -505,6 +525,7 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
             painter.end();
 
             QString titleScreenFilename = getBaseFilename() + "_credits_" + QString::number(frame) + ".jpg";
+            _encodingTempFiles.append (titleScreenFilename);
             img.save(titleScreenFilename);
             encoder.AddVideoFrame(titleScreenFilename);
         }

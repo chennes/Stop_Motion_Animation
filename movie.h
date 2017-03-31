@@ -109,6 +109,7 @@ private:
     QCamera *_camera;
     QImageEncoderSettings _encoderSettings;
     std::unique_ptr<QCameraImageCapture> _imageCapture;
+    mutable QStringList _encodingTempFiles;
 
     // For playback
     bool _currentlyPlaying;
