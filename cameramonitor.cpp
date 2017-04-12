@@ -9,10 +9,7 @@ CameraMonitor::CameraMonitor(QObject *parent, QCameraInfo camera) :
 void CameraMonitor::run()
 {
     qDebug() << "Starting a new check thread";
-    while (true) {
-        if (QThread::currentThread()->isInterruptionRequested()) {
-            return;
-        }
+    while (!isInterruptionRequested()) {
         auto cameras = QCameraInfo::availableCameras();
         bool found (false);
         for (auto camera: cameras) {
@@ -24,10 +21,6 @@ void CameraMonitor::run()
             emit cameraLost();
             return;
         }
-
-        if (QThread::currentThread()->isInterruptionRequested()) {
-            return;
-        }
-        sleep(1);
+        _threadWait.tryAcquire(1, 1000);
     }
 }

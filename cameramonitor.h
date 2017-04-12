@@ -3,6 +3,7 @@
 
 #include <QThread>
 #include <QCameraInfo>
+#include <QSemaphore>
 
 class CameraMonitor : public QThread
 {
@@ -17,6 +18,7 @@ signals:
 
 private:
     QCameraInfo _camera;
+    QSemaphore _threadWait;
 };
 
 #endif // CAMERAMONITOR_H
