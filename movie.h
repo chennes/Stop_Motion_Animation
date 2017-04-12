@@ -97,8 +97,6 @@ protected:
 
 private:
 
-    static const int DEFAULT_FPS;
-
     QString _name;
     qint32 _numberOfFrames;
     qint32 _framesPerSecond;
@@ -117,9 +115,9 @@ private:
     QTimer _playbackTimer;
     QLabel *_frameDestination;
     qint32 _playFrameCounter;
+    qint32 _skippedFrameCounter;
+    qint32 _computerSpeedAdjust;
     QTime _playStartTime;
-    QTime _lastFrameTime;
-    qint32 _computerSpeedAdjustment;
 
 public:
 

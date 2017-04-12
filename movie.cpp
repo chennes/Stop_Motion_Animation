@@ -17,14 +17,12 @@
 #include "avcodecwrapper.h"
 #include "settings.h"
 
-const qint32 Movie::DEFAULT_FPS (15);
-
 Movie::Movie(const QString &name, bool allowModifications) :
     _name (name),
     _numberOfFrames (0),
     _currentlyPlaying (false),
     _currentFrame (-1),
-    _computerSpeedAdjustment (-2),
+    _computerSpeedAdjust (0),
     _allowModifications (allowModifications)
 {
     Settings settings;
@@ -163,8 +161,8 @@ void Movie::play (qint32 startFrame, QLabel *video)
     _currentlyPlaying = true;
     _frameDestination = video;
     _playFrameCounter = 1;
+    _skippedFrameCounter = 0;
     _playStartTime.start();
-    _lastFrameTime.start();
     setStillFrame (startFrame, video);
     if (_backgroundMusic) {
         Settings settings;
@@ -173,7 +171,9 @@ void Movie::play (qint32 startFrame, QLabel *video)
         double startTime = tOffset + (double)startFrame / (double)_framesPerSecond ;
         _backgroundMusic.playFrom(startTime);
     }
-    _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
+    int interval = (1000 / _framesPerSecond) - _computerSpeedAdjust;
+    qDebug() << "Frame interval: " << interval << "ms";
+    _playbackTimer.setInterval(interval);
     _playbackTimer.start();
 }
 
@@ -184,28 +184,14 @@ void Movie::nextFrame ()
 
         _playFrameCounter++;
         int elapsedPlayTime = _playStartTime.elapsed();
-        int millisPerFrame = 1000 / _framesPerSecond;
-        int expectedMillis = _playFrameCounter * millisPerFrame;
+        double millisPerFrame = 1000.0 / _framesPerSecond;
+        int expectedMillis = round(_playFrameCounter * millisPerFrame);
 
-        // Tweak the timer to make sure we are playing back at as close to the expected FPS as
-        // possible. This is important if we are playing along with music.
-        qint32 nominalMS = (1000 / _framesPerSecond);
-        if (_lastFrameTime.elapsed() != nominalMS) {
-            _computerSpeedAdjustment = nominalMS - _lastFrameTime.elapsed();
-            qint32 interval = 1000 / _framesPerSecond + _computerSpeedAdjustment;
-            if (interval > 0) {
-                _playbackTimer.setInterval(1000 / _framesPerSecond + _computerSpeedAdjustment);
-            } else {
-                // Drop a frame
-                _playFrameCounter++;
-            }
-        }
-        _lastFrameTime.restart();
-
-        // Worst case scenario, we can drop frames to catch up.
+        // If we have to, we can drop frames to catch up.
         if (expectedMillis < elapsedPlayTime-millisPerFrame) {
             // Skip a frame.
             _playFrameCounter++;
+            _skippedFrameCounter++;
             frameAdjust = 1;
         }
 
@@ -231,6 +217,21 @@ void Movie::stop ()
     for (auto &&sfx: _soundEffects) {
         sfx.stop();
     }
+    qDebug() << "Skipped " << _skippedFrameCounter << " frames in that run.";
+
+    int elapsedPlayTime = _playStartTime.elapsed();
+    double millisPerFrame = 1000.0 / _framesPerSecond;
+    int expectedMillis = round((_playFrameCounter-_skippedFrameCounter) * millisPerFrame);
+
+    // Tweak the playback timer speed to adjust for the computer's speed.
+    if (elapsedPlayTime > expectedMillis + millisPerFrame) {
+        _computerSpeedAdjust++;
+        _computerSpeedAdjust = std::min (_computerSpeedAdjust, 10); // Don't let it get too big
+    } else if (elapsedPlayTime < expectedMillis - millisPerFrame) {
+        _computerSpeedAdjust--;
+        _computerSpeedAdjust = std::max (_computerSpeedAdjust, -10);// ... or too small
+    }
+
 }
 
 void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
