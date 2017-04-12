@@ -18,6 +18,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     ui(new Ui::StopMotionAnimation),
     _camera(NULL),
     _cameraMonitor (NULL),
+    _keydownState (KeydownState::NONE),
     _backgroundMusic (SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
     _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
@@ -195,6 +196,12 @@ void StopMotionAnimation::addToPrevious ()
             setState(State::STILL); // We MUST set the state before the frame
             _movie->setStillFrame (0, ui->videoLabel);
         }
+        try {
+            _overlayEffect->setPreviousFrame(_movie->getMostRecentFrame());
+        } catch (PreviousFrameOverlayEffect::LoadFailedException &e) {
+            //_errorDialog.showMessage("Failed to load the previous frame into the overlay layer.");
+            _errorDialog.showMessage(e.message());
+        }
     }
 }
 
@@ -234,6 +241,12 @@ void StopMotionAnimation::on_importButton_clicked()
             _errorDialog.showMessage("Failed to import the file " + filename);
             return;
         }
+    }
+    try {
+        _overlayEffect->setPreviousFrame(_movie->getMostRecentFrame());
+    } catch (PreviousFrameOverlayEffect::LoadFailedException &e) {
+        //_errorDialog.showMessage("Failed to load the previous frame into the overlay layer.");
+        _errorDialog.showMessage(e.message());
     }
     updateInterfaceForNewFrame();
 }
