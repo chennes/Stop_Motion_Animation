@@ -62,10 +62,10 @@ void SoundSelectionDialog::on_chooseMusicFileButton_clicked()
     QString startingDirectory = "";
     switch (_mode) {
     case Mode::BACKGROUND_MUSIC:
-        startingDirectory = "music";
+        startingDirectory = "Music";
         break;
     case Mode::SOUND_EFFECT:
-        startingDirectory = "sfx";
+        startingDirectory = "Sound Effects";
         break;
     }
 
