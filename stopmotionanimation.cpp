@@ -8,6 +8,7 @@
 #include <QDesktopServices>
 #include <QMessageBox>
 #include "settings.h"
+#include "version.h"
 
 #include <memory>
 
@@ -21,7 +22,7 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
     ui->setupUi(this);
-    this->setWindowTitle(QCoreApplication::applicationName());
+    this->setWindowTitle(QCoreApplication::applicationName() + " -- v" + APP_VERSION + "-" + APP_REVISION);
     connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
     Settings settings;
     int w = settings.Get("settings/imageWidth").toInt();

@@ -1,0 +1,8 @@
+const int APP_MAJOR = $$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", "\1");
+const int APP_MINOR = $$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", "\2");
+const int APP_BUILD = $$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", "\3");
+const QString APP_VERSION = \"$$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", ""\1.\2.\3"")\";
+const QString APP_VERSION_RC = \"$$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", "\1,\2,\3")\";
+const QString APP_REVISION = \"$$replace(GIT_VERSION, "^v(\d+)\.(\d+)-(\d+)-(.*)$", ""\4"")\";
+const QString APP_NAME = \"$$replace(TARGET, "^(.)$", ""\1"")\";
+const int APP_TIME = $$GIT_TIMESTAMP;

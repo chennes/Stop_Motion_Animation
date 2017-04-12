@@ -73,7 +73,12 @@ FORMS    += stopmotionanimation.ui \
 RESOURCES += \
     resources.qrc
 
-RC_ICONS = PLS-SM-Icon.ico
+RC_FILE = StopMotionAnimation.rc
+
+GIT_VERSION = $$system($$quote(git describe --tags))
+GIT_TIMESTAMP = $$system($$quote(git log -n 1 --format=format:"%at"))
+
+QMAKE_SUBSTITUTES += $$PWD/version.h.in
 
 win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lavutil
 
@@ -107,4 +112,8 @@ win32: LIBS += -L$$PWD/../ffmpeg/win64/lib/ -lswresample
 
 win32:!win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/swresample.lib
 else:win32-g++: PRE_TARGETDEPS += $$PWD/../ffmpeg/win64/lib/libswresample.a
+
+DISTFILES += \
+    StopMotionAnimation.rc \
+    version.h.in
 

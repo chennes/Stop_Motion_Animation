@@ -37,17 +37,3 @@ int main(int argc, char *argv[])
 
     return a.exec();
 }
-
-bool readJSONFile(QIODevice &device, QSettings::SettingsMap &map);
-
-bool writeJSONFile(QIODevice &device, const QSettings::SettingsMap &map);
-
-void ConfigureSettings()
-{
-
-    // Set up a JSON-formatted writer for our settings so that we can store them locally when we are
-    // running off of a thumb drive. This will enable us to store a user-readable file next to the .exe
-    // so that the settings can easily be duplicated to other drives (e.g. to set up the default settings
-    // for a Stop Motion program at the library...)
-
-}
