@@ -324,6 +324,11 @@ void Movie::save () const
 
         json["backgroundMusic"] = backgroundObject;
 
+
+        json["encodingFilename"] = _encodingFilename;
+        json["encodingTitle"] = _encodingTitle;
+        json["encodingCredits"] = _encodingCredits;
+
         QJsonDocument jsonDocument (json);
         saveFile.write(jsonDocument.toJson());
         saveFile.close();
@@ -374,13 +379,23 @@ bool Movie::load (const QString &filename)
         QJsonObject backgroundObject (json["backgroundMusic"].toObject());
         _backgroundMusic.load (backgroundObject);
     }
+
+    _encodingFilename = json["encodingFilename"].toString();
+    _encodingTitle = json["encodingTitle"].toString();
+    _encodingCredits = json["encodingCredits"].toString();
     return true;
 }
 
-void Movie::encodeToFile (const QString &filename, const QString &title, const QString &credits) const
+void Movie::encodeToFile (const QString &filename, const QString &title, const QString &credits)
 {
     Settings settings;
     avcodecWrapper encoder;
+
+    _encodingFilename = filename;
+    _encodingTitle = title;
+    _encodingCredits = credits;
+
+    save();
 
     for (auto tempFile: _encodingTempFiles) {
         QFile f (tempFile);

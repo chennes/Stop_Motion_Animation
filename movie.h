@@ -74,7 +74,7 @@ public:
      */
     bool load(const QString &filename);
 
-    void encodeToFile (const QString &filename, const QString &title, const QString &credits) const;
+    void encodeToFile (const QString &filename, const QString &title, const QString &credits);
 
 signals:
 
@@ -102,6 +102,9 @@ private:
     qint32 _framesPerSecond;
     QMap<int,SoundEffect> _soundEffects;
     SoundEffect _backgroundMusic;
+    QString _encodingFilename;
+    QString _encodingTitle;
+    QString _encodingCredits;
     bool _allowModifications;
 
     QCamera *_camera;
