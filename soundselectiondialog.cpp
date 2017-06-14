@@ -3,6 +3,7 @@
 
 #include <QFileDialog>
 #include <QAudioDecoder>
+#include <QTimer>
 #include "settings.h"
 #include "settingsdialog.h"
 
@@ -73,7 +74,9 @@ void SoundSelectionDialog::on_chooseMusicFileButton_clicked()
         tr("Open Sound File"),
         startingDirectory,
         tr("Sound files (*.mp3;*.wav);;All files (*.*)"));
-    loadFile(filename);
+    if (filename.length() > 0) {
+        loadFile(filename);
+    }
 }
 
 void SoundSelectionDialog::loadFile (const QString &filename)
@@ -210,6 +213,11 @@ void SoundSelectionDialog::showEvent(QShowEvent *)
 {
     if (!_musicSet) {
         on_chooseMusicFileButton_clicked();
+        if (_filename.length() == 0) {
+            // Don't show, hide yourself... but you can't hide during a show event, so do it
+            // in a few milliseconds
+            QTimer::singleShot (5, this, &SoundSelectionDialog::close);
+        }
     }
 }
 
