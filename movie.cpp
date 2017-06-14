@@ -202,9 +202,17 @@ void Movie::nextFrame ()
             return;
         } else {
             setStillFrame (targetFrame, _frameDestination);
+            if (frameAdjust > 0) {
+                for (int adjustment = frameAdjust; adjustment >= 1; adjustment--) {
+                    if (_soundEffects.contains(targetFrame-adjustment)) {
+                        _soundEffects[targetFrame-adjustment].play();
+                    }
+                }
+            }
             if (_soundEffects.contains(targetFrame)) {
                 _soundEffects[targetFrame].play();
             }
+
         }
     }
 }

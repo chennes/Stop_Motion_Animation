@@ -252,10 +252,13 @@ SoundEffect SoundSelectionDialog::getSelectedSound () const
 
 void SoundSelectionDialog::setSound (const SoundEffect &sfx)
 {
+    _sfx = sfx;
     if (sfx) {
         _sfx = sfx;
         loadFile (sfx.getFilename());
         _musicSet = true; // Make sure to set this here to prevent the File dialog from opening
+    } else {
+        _musicSet = false;
     }
 }
 
