@@ -315,7 +315,7 @@ void StopMotionAnimation::setSoundEffect()
 void StopMotionAnimation::on_soundEffectButton_clicked()
 {
     if (_state == State::STILL) {
-        int frame = ui->frameLabel->text().toInt() - 1;
+        int frame = ui->frameNumberLabel->text().toInt() - 1;
         _soundEffects.setSound(_movie->getSoundEffect(frame));
         _soundEffects.show();
     }

@@ -8,6 +8,8 @@ class VariableSelectionWaveform : public Waveform
 public:
     VariableSelectionWaveform(QWidget *parent = NULL);
 
+    virtual qint64 getSelectionLength () const;
+
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);

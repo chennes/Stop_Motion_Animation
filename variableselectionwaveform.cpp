@@ -65,3 +65,8 @@ void VariableSelectionWaveform::onSelectionRegionChanged (qint64 start, qint64 l
         _selectionRegion->setZValue(100);
     }
 }
+
+qint64 VariableSelectionWaveform::getSelectionLength () const
+{
+    return pixelsToMillis(_selectionLength);
+}

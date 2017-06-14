@@ -57,7 +57,7 @@ private:
         ~AudioFile ()
         {
             if (ais) delete ais;
-            if (outputs) avfilter_inout_free(&outputs);
+            //if (outputs) avfilter_inout_free(&outputs);
         }
 
         QString filename;

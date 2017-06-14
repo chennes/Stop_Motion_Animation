@@ -12,63 +12,63 @@ TEMPLATE = app
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
-SOURCES += main.cpp\
-        stopmotionanimation.cpp \
-    movie.cpp \
-    soundeffect.cpp \
-    helpdialog.cpp \
-    settingsdialog.cpp \
-    filenameconstructiondialog.cpp \
-    avcodecwrapper.cpp \
-    utils.cpp \
-    waveform.cpp \
-    savefinalmoviedialog.cpp \
-    previousframeoverlayeffect.cpp \
-    frameeditor.cpp \
-    frame.cpp \
-    settings.cpp \
-	audioinputstream.cpp \
-        audiojoiner.cpp \
-    multiregionwaveform.cpp \
-    variableselectionwaveform.cpp \
-    soundselectiondialog.cpp \
-    movieframeslider.cpp \
-    addtopreviousmoviedialog.cpp \
-    cameramonitor.cpp
+SOURCES += main.cpp \
+           stopmotionanimation.cpp \
+           movie.cpp \
+           soundeffect.cpp \
+           helpdialog.cpp \
+           settingsdialog.cpp \
+           filenameconstructiondialog.cpp \
+           avcodecwrapper.cpp \
+           utils.cpp \
+           waveform.cpp \
+           savefinalmoviedialog.cpp \
+           previousframeoverlayeffect.cpp \
+           frameeditor.cpp \
+           frame.cpp \
+           settings.cpp \
+           audioinputstream.cpp \
+           audiojoiner.cpp \
+           multiregionwaveform.cpp \
+           variableselectionwaveform.cpp \
+           soundselectiondialog.cpp \
+           movieframeslider.cpp \
+           addtopreviousmoviedialog.cpp \
+           cameramonitor.cpp
 
 HEADERS  += stopmotionanimation.h \
-    movie.h \
-    soundeffect.h \
-    helpdialog.h \
-    settingsdialog.h \
-    filenameconstructiondialog.h \
-    avcodecwrapper.h \
-    utils.h \
-    waveform.h \
-    savefinalmoviedialog.h \
-    previousframeoverlayeffect.h \
-    frameeditor.h \
-    frame.h \
-    settings.h \
-	audioinputstream.h \
-        audiojoiner.h  \
-    plsexception.h \
-    avexception.h \
-    multiregionwaveform.h \
-    variableselectionwaveform.h \
-    soundselectiondialog.h \
-    movieframeslider.h \
-    addtopreviousmoviedialog.h \
-    cameramonitor.h
+            movie.h \
+            soundeffect.h \
+            helpdialog.h \
+            settingsdialog.h \
+            filenameconstructiondialog.h \
+            avcodecwrapper.h \
+            utils.h \
+            waveform.h \
+            savefinalmoviedialog.h \
+            previousframeoverlayeffect.h \
+            frameeditor.h \
+            frame.h \
+            settings.h \
+            audioinputstream.h \
+            audiojoiner.h  \
+            plsexception.h \
+            avexception.h \
+            multiregionwaveform.h \
+            variableselectionwaveform.h \
+            soundselectiondialog.h \
+            movieframeslider.h \
+            addtopreviousmoviedialog.h \
+            cameramonitor.h
 
 FORMS    += stopmotionanimation.ui \
-    helpdialog.ui \
-    settingsdialog.ui \
-    filenameconstructiondialog.ui \
-    savefinalmoviedialog.ui \
-    frameeditor.ui \
-    soundselectiondialog.ui \
-    addtopreviousmoviedialog.ui
+            helpdialog.ui \
+            settingsdialog.ui \
+            filenameconstructiondialog.ui \
+            savefinalmoviedialog.ui \
+            frameeditor.ui \
+            soundselectiondialog.ui \
+            addtopreviousmoviedialog.ui
 
 RESOURCES += \
     resources.qrc

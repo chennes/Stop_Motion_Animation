@@ -9,12 +9,14 @@ SoundEffect::SoundEffect(const QString &filename):
     _filename (filename),
     _startFrame(0),
     _in(0.0),
+    _out(0.0),
     _volume(1.0),
     _isPlaying (false)
 {
+    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
+             this, &SoundEffect::mediaStatusChanged);
     if (_filename.length() > 0) {
         _playback.setMedia (QUrl::fromLocalFile(filename));
-        _out = double(_playback.duration()) / 1000.0;
     }
 }
 
@@ -26,6 +28,8 @@ SoundEffect::SoundEffect(const QString &filename, int startFrame, double in, dou
     _volume(volume),
     _isPlaying (false)
 {
+    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
+             this, &SoundEffect::mediaStatusChanged);
     _playback.setMedia (QUrl::fromLocalFile(filename));
 }
 
@@ -39,8 +43,10 @@ SoundEffect::SoundEffect(const SoundEffect &sfx) :
     _volume(sfx._volume),
     _isPlaying(false)
 {
+    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
+             this, &SoundEffect::mediaStatusChanged);
     if (_filename.length() > 0) {
-        _playback.setMedia (QUrl::fromLocalFile(_filename));
+       _playback.setMedia (QUrl::fromLocalFile(_filename));
     }
 }
 
@@ -158,15 +164,32 @@ double SoundEffect::getVolume () const
 }
 
 
+void SoundEffect::mediaStatusChanged (QMediaPlayer::MediaStatus s)
+{
+    qDebug() << "Playback status changed to " << s;
+    switch (s) {
+    case QMediaPlayer::LoadedMedia:
+        if (_out == 0.0) {
+            _out = _playback.duration() / 1000;
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+
 
 void SoundEffect::play () const
 {
-    if (_out > _in) {
+    if (_out > _in || _out == 0.0) {
         _playback.stop();
         _isPlaying = true;
         _playback.setPosition(1000 * _in);
         _playback.play();
-        QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
+        if (_out != 0.0) {
+            QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
+        }
     }
 }
 
@@ -200,7 +223,6 @@ void SoundEffect::load (const QJsonObject &json)
 
     if (_filename.length() > 0) {
         _playback.setMedia (QUrl::fromLocalFile(_filename));
-        _out = double(_playback.duration()) / 1000.0;
     }
 }
 

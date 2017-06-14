@@ -38,7 +38,7 @@ public:
 
     qint64 getSelectionStart () const;
 
-    qint64 getSelectionLength () const;
+    virtual qint64 getSelectionLength () const;
 
 signals:
 

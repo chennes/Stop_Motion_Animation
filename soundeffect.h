@@ -58,6 +58,8 @@ public slots:
 
     void save (QJsonObject &json) const;
 
+    void mediaStatusChanged (QMediaPlayer::MediaStatus s);
+
 
 private:
     QString _filename;
