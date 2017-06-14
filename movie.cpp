@@ -301,11 +301,6 @@ void Movie::save () const
 {
     if (_numberOfFrames > 0 && _allowModifications) {
         auto filename = getSaveFilename ();
-        QFile saveFile (filename);
-        bool isOpen = saveFile.open(QIODevice::WriteOnly);
-        if (!isOpen) {
-            throw Movie::FailedToSaveException(filename);
-        }
         QJsonObject json;
         json["name"] = _name;
         json["numberOfFrames"] = _numberOfFrames;
@@ -330,6 +325,11 @@ void Movie::save () const
         json["encodingCredits"] = _encodingCredits;
 
         QJsonDocument jsonDocument (json);
+        QFile saveFile (filename);
+        bool isOpen = saveFile.open(QIODevice::WriteOnly);
+        if (!isOpen) {
+            throw Movie::FailedToSaveException(filename);
+        }
         saveFile.write(jsonDocument.toJson());
         saveFile.close();
     }
