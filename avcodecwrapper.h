@@ -20,7 +20,7 @@ public:
 
     void AddVideoFrame (const QString &filename);
 
-    void AddAudioFile (const SoundEffect &soundEffect);
+    void AddAudioFile (const SoundEffect &soundEffect, double tOffset);
 
     void Encode (const QString &filename, int w, int h, int fps);
 

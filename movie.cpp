@@ -413,10 +413,14 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
 
     // Audio second:
     if (_backgroundMusic) {
-        encoder.AddAudioFile(_backgroundMusic);
+        encoder.AddAudioFile(_backgroundMusic, 0);
     }
+
+    double ptsDuration = settings.Get("settings/preTitleScreenDuration").toDouble();
+    double tsDuration = settings.Get("settings/titleScreenDuration").toDouble();
+
     for (auto sfx: _soundEffects) {
-        encoder.AddAudioFile(sfx);
+        encoder.AddAudioFile(sfx, ptsDuration+tsDuration);
     }
     int w = settings.Get("settings/imageWidth").toInt();
     int h = settings.Get("settings/imageHeight").toInt();

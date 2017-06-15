@@ -66,9 +66,10 @@ void avcodecWrapper::AddVideoFrame (const QString &filename)
     _videoFrames.append(filename);
 }
 
-void avcodecWrapper::AddAudioFile (const SoundEffect &soundEffect)
+void avcodecWrapper::AddAudioFile (const SoundEffect &soundEffect, double tOffset)
 {
     _soundEffects.append(soundEffect);
+    _soundEffects.back().setStartTime(_soundEffects.back().getStartTime()+tOffset);
 }
 
 void avcodecWrapper::Encode (const QString &filename, int w, int h, int fps)
