@@ -76,6 +76,8 @@ void SoundSelectionDialog::on_chooseMusicFileButton_clicked()
         tr("Sound files (*.mp3;*.wav);;All files (*.*)"));
     if (filename.length() > 0) {
         loadFile(filename);
+    } else {
+        _filename = "";
     }
 }
 
@@ -151,6 +153,7 @@ void SoundSelectionDialog::readFinished ()
         w->DoneAddingRegions();
     }
     _musicSet = true;
+    _waveform->bufferComplete();
 }
 
 void SoundSelectionDialog::setMovieDuration (double duration)

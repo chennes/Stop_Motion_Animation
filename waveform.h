@@ -26,6 +26,8 @@ public:
 
     void addBuffer (const QAudioBuffer &buffer);
 
+    void bufferComplete ();
+
     void setSelectionStart (qint64 millis);
 
     void setSelectionLength (qint64 millis);
@@ -63,6 +65,7 @@ protected:
     qint64 _selectionLength;
     qint64 _playheadPosition;
     qreal _maxValue;
+    bool _bufferComplete;
 
     // Elements in the scene that we need to change over time:
     QGraphicsLineItem *_cursorLine;

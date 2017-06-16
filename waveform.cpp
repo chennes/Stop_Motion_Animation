@@ -36,6 +36,7 @@ Waveform::Waveform(QWidget *parent) :
 
 void Waveform::reset()
 {
+    this->setMouseTracking(false);
     _scene.clear();
     _scene.setSceneRect(0,0,this->width(), this->height());
     QPen cursorPen (QColor(0,0,0,100));
@@ -54,6 +55,7 @@ void Waveform::reset()
     _selectionLength = 0;
     _playheadPosition = 0;
     _maxValue = 0;
+    _bufferComplete = false;
 }
 
 void Waveform::setDuration (qint64 millis)
@@ -63,6 +65,7 @@ void Waveform::setDuration (qint64 millis)
 
 void Waveform::addBuffer (const QAudioBuffer &buffer)
 {
+    _bufferComplete = false;
     if (_totalLength == 0) {
         // Throw an error here, you have to set the length
         // before adding buffers.
@@ -115,10 +118,16 @@ void Waveform::addBuffer (const QAudioBuffer &buffer)
                               this->height() - pixelValue * this->height()),
                        QPen(Qt::green, 1));
     }
+}
+
+void Waveform::bufferComplete ()
+{
+    _bufferComplete = true;
 
     // Make sure the various UI objects are showing now...
     _cursorLine->show();
     _playheadLine->show();
+    this->setMouseTracking(true);
 }
 
 void Waveform::setSelectionStart (qint64 millis)
