@@ -68,5 +68,11 @@ void VariableSelectionWaveform::onSelectionRegionChanged (qint64 start, qint64 l
 
 qint64 VariableSelectionWaveform::getSelectionLength () const
 {
-    return pixelsToMillis(_selectionLength);
+    // If the selection is super small, assume it wasn't meant to be a selection at all
+    if (_selectionLength < 5) {
+        int fullWidth = this->width() - _selectionStart;
+        return pixelsToMillis(fullWidth);
+    } else {
+        return pixelsToMillis(_selectionLength);
+    }
 }
