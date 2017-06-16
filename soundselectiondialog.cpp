@@ -83,13 +83,8 @@ void SoundSelectionDialog::on_chooseMusicFileButton_clicked()
 
 void SoundSelectionDialog::loadFile (const QString &filename)
 {
-    // Two different loads to do: the player and the waveform. The player is just simple
-    // Qt, do it first:
     _filename = filename;
-    _player->setMedia(QUrl::fromLocalFile(filename));
-    _player->setVolume(50);
 
-    // Now the hard part: load the data out of the file
     QAudioFormat desiredFormat;
     desiredFormat.setChannelCount(2);
     desiredFormat.setCodec("audio/x-raw");
@@ -154,6 +149,10 @@ void SoundSelectionDialog::readFinished ()
     }
     _musicSet = true;
     _waveform->bufferComplete();
+
+    // Set up the player. I might need to catch the loaded signal before enabling the play button
+    _player->setMedia(QUrl::fromLocalFile(_filename));
+    _player->setVolume(50);
 }
 
 void SoundSelectionDialog::setMovieDuration (double duration)

@@ -36,6 +36,8 @@ public:
     double getOutPoint () const;
     double getVolume () const;
 
+    void enablePlayback();
+
 public slots:
 
     void play () const;
@@ -67,9 +69,10 @@ private:
     double _in;
     double _out;
     double _volume;
+    bool _playbackEnabled;
 
     mutable bool _isPlaying;
-    mutable QMediaPlayer _playback;
+    mutable QMediaPlayer *_playback;
 };
 
 #endif // SOUNDEFFECT_H

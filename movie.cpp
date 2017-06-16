@@ -248,6 +248,7 @@ void Movie::addBackgroundMusic (const SoundEffect &backgroundMusic)
         throw NoChangesNowException ("Cannot add music to movie when it is locked");
     }
     _backgroundMusic = backgroundMusic;
+    _backgroundMusic.enablePlayback();
     save();
 }
 
@@ -258,6 +259,7 @@ void Movie::addSoundEffect (const SoundEffect &soundEffect)
     }
     _soundEffects.insert(_currentFrame, soundEffect);
     _soundEffects[_currentFrame].setStartFrame(_currentFrame);
+    _soundEffects[_currentFrame].enablePlayback();
     save();
 }
 
@@ -373,11 +375,13 @@ bool Movie::load (const QString &filename)
             SoundEffect sfx;
             sfx.load (sfxObject);
             _soundEffects.insert(sfx.getStartFrame(), sfx);
+            _soundEffects[sfx.getStartFrame()].enablePlayback();
         }
     }
     if (json.contains("backgroundMusic")) {
         QJsonObject backgroundObject (json["backgroundMusic"].toObject());
         _backgroundMusic.load (backgroundObject);
+        _backgroundMusic.enablePlayback();
     }
 
     _encodingFilename = json["encodingFilename"].toString();

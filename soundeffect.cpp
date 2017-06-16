@@ -11,13 +11,9 @@ SoundEffect::SoundEffect(const QString &filename):
     _in(0.0),
     _out(0.0),
     _volume(1.0),
+    _playbackEnabled (false),
     _isPlaying (false)
 {
-    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
-             this, &SoundEffect::mediaStatusChanged);
-    if (_filename.length() > 0) {
-        _playback.setMedia (QUrl::fromLocalFile(filename));
-    }
 }
 
 SoundEffect::SoundEffect(const QString &filename, int startFrame, double in, double out, double volume):
@@ -26,11 +22,9 @@ SoundEffect::SoundEffect(const QString &filename, int startFrame, double in, dou
     _in(in),
     _out(out),
     _volume(volume),
+    _playbackEnabled (false),
     _isPlaying (false)
 {
-    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
-             this, &SoundEffect::mediaStatusChanged);
-    _playback.setMedia (QUrl::fromLocalFile(filename));
 }
 
 
@@ -41,13 +35,9 @@ SoundEffect::SoundEffect(const SoundEffect &sfx) :
     _in(sfx._in),
     _out(sfx._out),
     _volume(sfx._volume),
+    _playbackEnabled(false),
     _isPlaying(false)
 {
-    connect (&_playback, &QMediaPlayer::mediaStatusChanged,
-             this, &SoundEffect::mediaStatusChanged);
-    if (_filename.length() > 0) {
-       _playback.setMedia (QUrl::fromLocalFile(_filename));
-    }
 }
 
 
@@ -60,9 +50,7 @@ SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
         _out = rhs._out;
         _volume = rhs._volume;
         _isPlaying = false;
-        if (_filename.length() > 0) {
-            _playback.setMedia (QUrl::fromLocalFile(_filename));
-        }
+        _playbackEnabled = false;
     }
     return *this;
 }
@@ -170,7 +158,7 @@ void SoundEffect::mediaStatusChanged (QMediaPlayer::MediaStatus s)
     switch (s) {
     case QMediaPlayer::LoadedMedia:
         if (_out == 0.0) {
-            _out = _playback.duration() / 1000;
+            _out = _playback->duration() / 1000;
         }
         break;
     default:
@@ -178,15 +166,30 @@ void SoundEffect::mediaStatusChanged (QMediaPlayer::MediaStatus s)
     }
 }
 
-
+void SoundEffect::enablePlayback()
+{
+    if (!_playbackEnabled) {
+        _playback = new QMediaPlayer;
+        connect (_playback, &QMediaPlayer::mediaStatusChanged,
+                 this, &SoundEffect::mediaStatusChanged);
+        if (_filename.length() > 0) {
+            _playback->setMedia (QUrl::fromLocalFile(_filename));
+        }
+    }
+    _playbackEnabled = true;
+}
 
 void SoundEffect::play () const
 {
+    if (!_playbackEnabled) {
+        qDebug() << "Playback was disabled!";
+        return;
+    }
     if (_out > _in || _out == 0.0) {
-        _playback.stop();
+        _playback->stop();
         _isPlaying = true;
-        _playback.setPosition(1000 * _in);
-        _playback.play();
+        _playback->setPosition(1000 * _in);
+        _playback->play();
         if (_out != 0.0) {
             QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
         }
@@ -196,10 +199,14 @@ void SoundEffect::play () const
 
 void SoundEffect::playFrom (double t) const
 {
+    if (!_playbackEnabled) {
+        qDebug() << "Playback was disabled!";
+        return;
+    }
     if (_out > _in) {
         _isPlaying = true;
-        _playback.setPosition(1000 * (t+_in));
-        _playback.play();
+        _playback->setPosition(1000 * (t+_in));
+        _playback->play();
         QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
     }
 
@@ -208,9 +215,9 @@ void SoundEffect::playFrom (double t) const
 
 void SoundEffect::stop () const
 {
-    if (_isPlaying) {
+    if (_playbackEnabled && _isPlaying) {
         _isPlaying = false;
-        _playback.stop();
+        _playback->stop();
     }
 }
 
@@ -221,8 +228,8 @@ void SoundEffect::load (const QJsonObject &json)
     _in = json["in"].toDouble();
     _out = json["out"].toDouble();
 
-    if (_filename.length() > 0) {
-        _playback.setMedia (QUrl::fromLocalFile(_filename));
+    if (_filename.length() > 0 && _playbackEnabled) {
+        _playback->setMedia (QUrl::fromLocalFile(_filename));
     }
 }
 
