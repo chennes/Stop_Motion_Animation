@@ -179,7 +179,7 @@ void SettingsDialog::on_imageLocationBrowseButton_clicked()
 {
     // Show the folder selection dialog
     QString imageLocation = QFileDialog::getExistingDirectory(this, tr("Choose base location for images"));
-    if (imageLocation != QString::null) {
+    if (imageLocation.length() > 0) {
         ui->imageLocationLineEdit->setText(imageLocation);
     }
 }
@@ -194,7 +194,7 @@ void SettingsDialog::on_preTitleScreenFileBrowseButton_clicked()
     // Show the folder selection dialog
     QString imageLocation = QFileDialog::getOpenFileName(this, tr("Select the image file to use as the fre-title screen"),"","Image files (*.jpg *.png *.bmp *.gif);;All files (*.*)");
 
-    if (imageLocation != QString::null) {
+    if (imageLocation.length() > 0) {
         ui->preTitleScreenFileLineEdit->setText(imageLocation);
     }
 }

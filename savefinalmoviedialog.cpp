@@ -44,7 +44,7 @@ QString SaveFinalMovieDialog::credits() const
 void SaveFinalMovieDialog::on_changeLocationButton_clicked()
 {
     QString newFilename = QFileDialog::getSaveFileName(this, "Save movie to...", "", "Movie files (*.mp4);;All files (*.*)");
-    if (newFilename != QString::null) {
+    if (newFilename.length() > 0) {
         ui->movieSaveLocationLabel->setText(newFilename);
     }
 }
