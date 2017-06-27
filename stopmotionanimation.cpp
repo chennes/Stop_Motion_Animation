@@ -9,6 +9,7 @@
 #include <QMessageBox>
 #include "settings.h"
 #include "version.h"
+#include "importprogressdialog.h"
 
 #include <memory>
 
@@ -218,7 +219,7 @@ void StopMotionAnimation::saveFinalMovieAccepted()
     QString title = _saveFinalMovie.movieTitle();
     QString credits = _saveFinalMovie.credits();
     try {
-        std::unique_ptr<QMessageBox> message (new QMessageBox(QMessageBox::Information, "Encoding", "Creating your movie, just a moment...", QMessageBox::Ok));
+        std::unique_ptr<QMessageBox> message (new QMessageBox(QMessageBox::Information, "Encoding", "Creating your movie, just a moment...", QMessageBox::NoButton));
         message->show();
         QApplication::processEvents();
         _movie->encodeToFile (filename, title, credits);
@@ -236,10 +237,16 @@ void StopMotionAnimation::on_importButton_clicked()
     QString imageFileType = settings.Get("settings/imageFileType").toString().toLower();
     QString imageFileString = "Images (*." + imageFileType + ");; All files (*.*)";
     QStringList files = QFileDialog::getOpenFileNames(this, tr("Select image files to import"), "Image Files", imageFileString);
+    std::unique_ptr<ImportProgressDialog> progressDialog (new ImportProgressDialog(this));
+    progressDialog->setNumberOfFramesToImport(files.size());
+    progressDialog->show();
+    QApplication::processEvents();
     for (auto filename: files) {
         try {
             _movie->importFrame(filename);
             updateInterfaceForNewFrame();
+            progressDialog->increment();
+            QApplication::processEvents();
         } catch (Movie::ImportFailedException &) {
             _errorDialog.showMessage("Failed to import the file " + filename);
             return;
