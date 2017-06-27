@@ -309,6 +309,9 @@ void SoundSelectionDialog::on_volumeSlider_valueChanged(int value)
                                                   QAudio::LogarithmicVolumeScale,
                                                   QAudio::LinearVolumeScale);
     _player->setVolume (qRound(linearVolume * 100));
+    if (_sfx) {
+        _sfx.setVolume(qRound(linearVolume * 100));
+    }
 }
 
 void SoundSelectionDialog::on_resetSelectionButton_clicked()

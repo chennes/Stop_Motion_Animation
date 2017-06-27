@@ -113,6 +113,9 @@ void SoundEffect::setOutPoint (double t)
 void SoundEffect::setVolume (double v)
 {
     _volume = v;
+    if (_playbackEnabled) {
+        _playback->setVolume(_volume);
+    }
 }
 
 
@@ -189,6 +192,7 @@ void SoundEffect::play () const
         _playback->stop();
         _isPlaying = true;
         _playback->setPosition(1000 * _in);
+        _playback->setVolume(_volume);
         _playback->play();
         if (_out != 0.0) {
             QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
@@ -227,6 +231,10 @@ void SoundEffect::load (const QJsonObject &json)
     _startFrame = json["startFrame"].toInt();
     _in = json["in"].toDouble();
     _out = json["out"].toDouble();
+    _volume = json["volume"].toDouble();
+    if (_volume == 0) {
+        _volume = 1;
+    }
 
     if (_filename.length() > 0 && _playbackEnabled) {
         _playback->setMedia (QUrl::fromLocalFile(_filename));
@@ -239,4 +247,5 @@ void SoundEffect::save (QJsonObject &json) const
     json["startFrame"] = _startFrame;
     json["in"] = _in;
     json["out"] = _out;
+    json["volume"] = _volume;
 }
