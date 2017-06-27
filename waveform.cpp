@@ -8,44 +8,42 @@
 
 Waveform::Waveform(QWidget *parent) :
     QGraphicsView (parent),
-    _playheadPixels (0)
+    _playheadPixels (0),
+    _totalLength (0),
+    _selectionStart (0),
+    _selectionLength (0),
+    _playheadPosition (0),
+    _maxValue (0),
+    _cursorLine (NULL),
+    _playheadLine (NULL)
 {
     QGraphicsView::setScene(&_scene);
-    this->setMouseTracking(true);
+    _scene.setItemIndexMethod(QGraphicsScene::NoIndex);
+    reset();
+}
 
-    _scene.clear();
-    _scene.setSceneRect(0,0,this->width(), this->height());
-    QPen cursorPen (QColor(0,0,0,100));
-    _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
-    _cursorLine->setZValue(1000);
-    QPen playheadPen (QColor(0,0,0,200));
-    _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
-    _playheadLine->setZValue(999);
-    _cursorLine->hide();
-    _playheadLine->hide();
-
-    this->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    this->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-
-    _totalLength = 0;
-    _selectionStart = 0;
-    _selectionLength = 0;
-    _playheadPosition = 0;
-    _maxValue = 0;
+Waveform::~Waveform()
+{
+    qDebug () << "Destroying the scene!";
 }
 
 void Waveform::reset()
 {
     this->setMouseTracking(false);
+    this->setDisabled(true);
     _scene.clear();
     _scene.setSceneRect(0,0,this->width(), this->height());
     QPen cursorPen (QColor(0,0,0,100));
     _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
-    _cursorLine->setZValue(11);
+    _cursorLine->setZValue(1000);
+    _cursorLine->hide();
+    _cursorLine->setEnabled(false);
 
     QPen playheadPen (QColor(0,0,0,200));
     _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
-    _playheadLine->setZValue(10);
+    _playheadLine->setZValue(999);
+    _playheadLine->hide();
+    _playheadLine->setEnabled(false);
 
     this->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
     this->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
@@ -57,6 +55,7 @@ void Waveform::reset()
     _maxValue = 0;
     _bufferComplete = false;
 }
+
 
 void Waveform::setDuration (qint64 millis)
 {
@@ -114,9 +113,11 @@ void Waveform::addBuffer (const QAudioBuffer &buffer)
     for (int pixelOffset = 0; pixelOffset < maxValues.length(); pixelOffset++) {
         qreal pixelValue = maxValues[pixelOffset];
         // Draw a line on the graphics view at the right position
-        _scene.addLine(QLineF(pixelOffset+startPixel, this->height(), pixelOffset+startPixel,
-                              this->height() - pixelValue * this->height()),
-                       QPen(Qt::green, 1));
+        QGraphicsItem * line =
+          _scene.addLine(QLineF(pixelOffset+startPixel, this->height(), pixelOffset+startPixel,
+                                this->height() - pixelValue * this->height()),
+                         QPen(Qt::green, 1));
+        line->setEnabled(false); // Makes things faster, no need for these lines to get events
     }
 }
 
@@ -128,6 +129,7 @@ void Waveform::bufferComplete ()
     _cursorLine->show();
     _playheadLine->show();
     this->setMouseTracking(true);
+    this->setDisabled(false);
 }
 
 void Waveform::setSelectionStart (qint64 millis)
@@ -189,15 +191,10 @@ void Waveform::mouseMoveEvent(QMouseEvent *event)
     QGraphicsView::mouseMoveEvent (event);
 }
 
-void Waveform::resizeEvent(QResizeEvent *)
+void Waveform::resizeEvent(QResizeEvent *event)
 {
     _scene.setSceneRect(this->rect());
-    QPen cursorPen (QColor(0,0,0,100));
-    _cursorLine = _scene.addLine (0,0,0,this->height(), cursorPen);
-    _cursorLine->setZValue(1000);
-    QPen playheadPen (QColor(0,0,0,200));
-    _playheadLine = _scene.addLine (0,0,0,this->height(), playheadPen);
-    _playheadLine->setZValue(999);
+    QGraphicsView::resizeEvent (event);
 }
 
 qint64 Waveform::pixelsToMillis(int pixels) const

@@ -9,11 +9,13 @@ public:
     VariableSelectionWaveform(QWidget *parent = NULL);
 
     virtual qint64 getSelectionLength () const;
+    virtual void reset ();
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event);
     virtual void mouseReleaseEvent(QMouseEvent *event);
     virtual void mouseMoveEvent(QMouseEvent *event);
+
 
 protected slots:
     void onSelectionRegionChanged (qint64 start, qint64 length);

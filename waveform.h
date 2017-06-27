@@ -20,6 +20,8 @@ class Waveform : public QGraphicsView
 public:
     Waveform(QWidget *parent = NULL);
 
+    virtual ~Waveform();
+
     virtual void reset();
 
     void setDuration (qint64 millis);

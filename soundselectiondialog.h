@@ -2,6 +2,7 @@
 #define BACKGROUNDMUSICDIALOG_H
 
 #include <QDialog>
+#include <QFileDialog>
 #include <QString>
 #include <QAudioDecoder>
 #include <QGraphicsScene>
@@ -39,9 +40,12 @@ public:
 protected:
     virtual void showEvent(QShowEvent * event);
 
+    void stressTest ();
 
 private slots:
     void on_chooseMusicFileButton_clicked();
+    void fileDialogAccepted();
+    void fileDialogRejected();
     void on_playPauseButton_clicked();
     void readBuffer ();
     void readFinished ();
@@ -58,8 +62,11 @@ private slots:
 
     void on_resetSelectionButton_clicked();
 
+    void stressTestLoad ();
+
 private:
     Ui::SoundSelectionDialog *ui;
+    QFileDialog *_fileDialog;
     Mode _mode;
     QString _filename;
     QAudioDecoder *_decoder;
@@ -68,6 +75,7 @@ private:
     SoundEffect _sfx;
     double _movieDuration;
     bool _musicSet;
+    bool _loading;
 };
 
 #endif // BACKGROUNDMUSICDIALOG_H

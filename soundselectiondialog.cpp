@@ -16,9 +16,11 @@
 SoundSelectionDialog::SoundSelectionDialog(Mode mode, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SoundSelectionDialog),
+    _fileDialog (NULL),
     _mode (mode),
     _decoder(NULL),
-    _musicSet (false)
+    _musicSet (false),
+    _loading (false)
 {
     ui->setupUi(this);
     if (_mode == Mode::BACKGROUND_MUSIC) {
@@ -44,6 +46,23 @@ SoundSelectionDialog::SoundSelectionDialog(Mode mode, QWidget *parent) :
     _decoder = new QAudioDecoder(this);
     connect (_decoder, &QAudioDecoder::bufferReady, this, &SoundSelectionDialog::readBuffer);
     connect (_decoder, &QAudioDecoder::finished, this, &SoundSelectionDialog::readFinished);
+
+    QString startingDirectory = "";
+    switch (_mode) {
+    case Mode::BACKGROUND_MUSIC:
+        startingDirectory = "Music";
+        break;
+    case Mode::SOUND_EFFECT:
+        startingDirectory = "Sound Effects";
+        break;
+    }
+    _fileDialog = new QFileDialog (this, "Choose a sound file", startingDirectory, "Sound files (*.mp3 *.wav);;All files (*.*)");
+    _fileDialog->setFileMode(QFileDialog::ExistingFile);
+    _fileDialog->setNameFilter(tr("Sound files (*.mp3 *.wav);;All files (*.*)"));
+    _fileDialog->setOption (QFileDialog::DontUseNativeDialog, true);
+    _fileDialog->hide();
+    connect (_fileDialog, &QFileDialog::accepted, this, &SoundSelectionDialog::fileDialogAccepted);
+    connect (_fileDialog, &QFileDialog::rejected, this, &SoundSelectionDialog::fileDialogRejected);
 }
 
 SoundSelectionDialog::~SoundSelectionDialog()
@@ -59,30 +78,39 @@ void SoundSelectionDialog::on_chooseMusicFileButton_clicked()
     // Stop any playing that is happening now...
     ui->playPauseButton->setIcon(this->style()->standardIcon(QStyle::SP_MediaPlay));
     _player->pause();
+    _fileDialog->show();
+}
 
-    QString startingDirectory = "";
-    switch (_mode) {
-    case Mode::BACKGROUND_MUSIC:
-        startingDirectory = "Music";
-        break;
-    case Mode::SOUND_EFFECT:
-        startingDirectory = "Sound Effects";
-        break;
+void SoundSelectionDialog::fileDialogAccepted ()
+{
+    QStringList selectedFiles = _fileDialog->selectedFiles();
+    for (auto &&filename: selectedFiles) {
+        QFile file (filename);
+        qDebug() << "Loading a file: " << filename;
+        if (file.exists()) {
+            loadFile (filename);
+            return;
+        } else {
+            qDebug() << "Something is wrong with " << filename;
+        }
     }
+}
 
-    QString filename = QFileDialog::getOpenFileName(this,
-        tr("Open Sound File"),
-        startingDirectory,
-        tr("Sound files (*.mp3;*.wav);;All files (*.*)"));
-    if (filename.length() > 0) {
-        loadFile(filename);
-    } else {
-        _filename = "";
+void SoundSelectionDialog::fileDialogRejected ()
+{
+    if (!_musicSet) {
+        close();
     }
 }
 
 void SoundSelectionDialog::loadFile (const QString &filename)
 {
+    ui->playPauseButton->setDisabled(true);
+    ui->removeMusicButton->setDisabled(true);
+    ui->rewindButton->setDisabled(true);
+    ui->buttonBox->setDisabled(true);
+    ui->chooseMusicFileButton->setDisabled(true);
+    ui->resetSelectionButton->setDisabled(true);
     _filename = filename;
 
     QAudioFormat desiredFormat;
@@ -95,16 +123,16 @@ void SoundSelectionDialog::loadFile (const QString &filename)
     _decoder->setAudioFormat(desiredFormat);
     _decoder->setSourceFilename(filename);
     _waveform->reset();
+    _loading = true;
     _decoder->start();
-
-    ui->removeMusicButton->setDisabled(false);
-    ui->playPauseButton->setDisabled(false);
-    ui->rewindButton->setDisabled(false);
 }
 
 
 void SoundSelectionDialog::readBuffer ()
 {
+    if (!_loading) {
+        qDebug() << "What am I doing here?";
+    }
     QAudioBuffer buffer = _decoder->read();
     _waveform->setDuration(_decoder->duration());
     _waveform->addBuffer(buffer);
@@ -112,6 +140,7 @@ void SoundSelectionDialog::readBuffer ()
 
 void SoundSelectionDialog::readFinished ()
 {
+    _loading = false;
     Settings settings;
     _waveform->setDuration(_decoder->duration());
     if (_sfx) {
@@ -150,9 +179,15 @@ void SoundSelectionDialog::readFinished ()
     _musicSet = true;
     _waveform->bufferComplete();
 
-    // Set up the player. I might need to catch the loaded signal before enabling the play button
     _player->setMedia(QUrl::fromLocalFile(_filename));
     _player->setVolume(50);
+
+    ui->playPauseButton->setDisabled(false);
+    ui->removeMusicButton->setDisabled(false);
+    ui->rewindButton->setDisabled(false);
+    ui->buttonBox->setDisabled(false);
+    ui->chooseMusicFileButton->setDisabled(false);
+    ui->resetSelectionButton->setDisabled(false);
 }
 
 void SoundSelectionDialog::setMovieDuration (double duration)
@@ -215,12 +250,8 @@ void SoundSelectionDialog::showEvent(QShowEvent *)
 {
     if (!_musicSet) {
         on_chooseMusicFileButton_clicked();
-        if (_filename.length() == 0) {
-            // Don't show, hide yourself... but you can't hide during a show event, so do it
-            // in a few milliseconds
-            QTimer::singleShot (5, this, &SoundSelectionDialog::close);
-        }
     }
+    //stressTest();
 }
 
 void SoundSelectionDialog::dialogClosed(int)
@@ -284,4 +315,18 @@ void SoundSelectionDialog::on_resetSelectionButton_clicked()
 {
     // Trigger a recreation of the boxes
     readFinished();
+}
+
+void SoundSelectionDialog::stressTest ()
+{
+    stressTestLoad();
+}
+
+void SoundSelectionDialog::stressTestLoad ()
+{
+    if (!_loading) {
+        QString sfxToLoad ("C:\\Users\\chennes\\OneDrive - Pioneer Library System\\Software Development\\Sound Effects\\Laser_Gun.mp3");
+        loadFile(sfxToLoad);
+    }
+    QTimer::singleShot(1000, this, &SoundSelectionDialog::stressTestLoad);
 }

@@ -3,9 +3,17 @@
 
 VariableSelectionWaveform::VariableSelectionWaveform(QWidget *parent) :
     Waveform(parent),
+    _selectionRegion(NULL),
     _currentlyDragging (false)
 {
     connect (this, &Waveform::selectionRegionChanged, this, &VariableSelectionWaveform::onSelectionRegionChanged);
+}
+
+void VariableSelectionWaveform::reset ()
+{
+    _selectionRegion = NULL; // Lose the pointer, we don't own the item and it's about to get deleted
+    _currentlyDragging = false;
+    Waveform::reset();
 }
 
 void VariableSelectionWaveform::mousePressEvent(QMouseEvent *event)
@@ -44,7 +52,6 @@ void VariableSelectionWaveform::mouseMoveEvent(QMouseEvent *event)
     Waveform::mouseMoveEvent(event);
 }
 
-
 void VariableSelectionWaveform::onSelectionRegionChanged (qint64 start, qint64 length)
 {
     int rStart, rWidth;
@@ -56,7 +63,7 @@ void VariableSelectionWaveform::onSelectionRegionChanged (qint64 start, qint64 l
         rWidth = abs(length);
     }
     QRectF r (rStart, 0, rWidth, _scene.height());
-    if (_scene.items().contains(_selectionRegion)) {
+    if (_selectionRegion && _scene.items().contains(_selectionRegion)) {
         _selectionRegion->setRect (r);
     } else {
         QPen pen (Qt::black);
@@ -64,6 +71,7 @@ void VariableSelectionWaveform::onSelectionRegionChanged (qint64 start, qint64 l
         _selectionRegion = _scene.addRect (r, pen, brush);
         _selectionRegion->setZValue(100);
     }
+
 }
 
 qint64 VariableSelectionWaveform::getSelectionLength () const
