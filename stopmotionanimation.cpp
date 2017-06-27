@@ -209,7 +209,7 @@ void StopMotionAnimation::addToPrevious ()
 
 void StopMotionAnimation::on_createFinalMovieButton_clicked()
 {
-    _saveFinalMovie.reset(_movie->getName());
+    _saveFinalMovie.reset(_movie->getEncodingFilename(), _movie->getEncodingTitle(), _movie->getEncodingCredits());
     _saveFinalMovie.show();
 }
 

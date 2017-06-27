@@ -81,6 +81,31 @@ QString Movie::getName () const
     return _name;
 }
 
+
+
+QString Movie::getEncodingFilename() const
+{
+    if (_encodingFilename.length() == 0) {
+        Settings settings;
+        QString imageStorageLocation = settings.Get("settings/imageStorageLocation").toString();
+        QString newEncodingFilename = imageStorageLocation + _name + ".mp4";
+        return newEncodingFilename;
+    } else {
+        return _encodingFilename;
+    }
+}
+
+QString Movie::getEncodingTitle() const
+{
+    return _encodingTitle;
+}
+
+QString Movie::getEncodingCredits() const
+{
+    return _encodingCredits;
+}
+
+
 void Movie::addFrame (QCamera *camera)
 {
     if (!_allowModifications) {

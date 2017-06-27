@@ -30,6 +30,12 @@ public:
 
     QString getName () const;
 
+    QString getEncodingFilename() const;
+
+    QString getEncodingTitle() const;
+
+    QString getEncodingCredits() const;
+
     QString getSaveFilename () const;
 
     void addFrame (QCamera *camera);

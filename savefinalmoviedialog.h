@@ -18,7 +18,7 @@ public:
     /**
      * @brief reset clears the contents of the input boxes and recalculates a default filename. Call before show().
      */
-    void reset(const QString &name);
+    void reset(const QString &filename, const QString &title, const QString &credits);
 
     QString filename() const;
     QString movieTitle() const;
