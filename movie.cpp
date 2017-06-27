@@ -259,11 +259,10 @@ void Movie::addSoundEffect (const SoundEffect &soundEffect)
         throw NoChangesNowException ("Cannot add sound effect to movie when it is locked");
     }
     if (!soundEffect) {
-        // We are really removing this SFX, assuming that it has a valid frame:
-        int frame = soundEffect.getStartFrame();
-        if (frame >= 0 && frame < _numberOfFrames) {
-            if (_soundEffects.contains(frame)) {
-                _soundEffects.remove(frame);
+        // We are really removing the current frame's SFX
+        if (_currentFrame >= 0 && _currentFrame < _numberOfFrames) {
+            if (_soundEffects.contains(_currentFrame)) {
+                _soundEffects.remove(_currentFrame);
             }
         }
     } else {
