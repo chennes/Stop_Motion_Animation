@@ -192,6 +192,7 @@ void StopMotionAnimation::addToPrevious ()
         if (!success) {
             _errorDialog.showMessage("Could not load the file " + filenameNoPath + " as a PLS Stop Motion Creator movie file");
         } else {
+            ui->movieNameLabel->setText(_movie->getName());
             updateInterfaceForNewFrame();
             setState(State::STILL); // We MUST set the state before the frame
             _movie->setStillFrame (0, ui->videoLabel);
