@@ -1,5 +1,6 @@
 #include "audiojoiner.h"
 #include "avexception.h"
+#include <qdebug.h>
 
 #include <iostream>
 
@@ -237,15 +238,23 @@ AVFrame* AudioJoiner::GetNextFrame()
         while (ret == AVERROR(EAGAIN)) {
             // Start by checking to see if we even need to read another frame of audio information
             // from the files to get another frame...
+            qDebug() << "Asking filtergraph for another frame...";
             av_buffersink_set_frame_size (_bufferSinkContext, _outputFrameSize);
             ret = av_buffersink_get_frame(_bufferSinkContext, _outputFrame);
+            qDebug() << "Filtergraph said " << (ret == AVERROR(EAGAIN) ? "\"Feed me!\"" : "\"OK\"");
             if (ret == AVERROR(EAGAIN)) {
                 // We need more data: we don't know which file is the holdup, so just load one more
                 // frame from all of them
+                qDebug() << "Getting the next audio frame";
                 for (auto&& file: _files) {
                     AVFrame *frame = file.ais->GetNextFrame();
                     if (frame) {
                         ret2 = av_buffersrc_add_frame_flags(file.bufferSourceContext, frame, 0);
+                        if (ret2 < 0) {
+                            throw AVException("av_buffersrc_add_frame_flags",ret);
+                        }
+                    } else {
+                        ret2 = av_buffersrc_add_frame_flags(file.bufferSourceContext, NULL, 0);
                         if (ret2 < 0) {
                             throw AVException("av_buffersrc_add_frame_flags",ret);
                         }
@@ -262,6 +271,7 @@ AVFrame* AudioJoiner::GetNextFrame()
         if (ret < 0){
             throw AVException("av_buffersink_get_frame",ret);
         } else {
+            qDebug() << "Returning an audio frame";
             return _outputFrame;
         }
     }

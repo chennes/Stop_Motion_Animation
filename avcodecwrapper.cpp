@@ -276,7 +276,7 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
         nb_samples = c->frame_size;
 
     ost->frame     = alloc_audio_frame(c->sample_fmt, c->channel_layout,
-                                       c->sample_rate, nb_samples);
+                                            c->sample_rate, nb_samples);
 
     /* copy the stream parameters to the muxer */
     ret = avcodec_parameters_from_context(ost->st->codecpar, c);
@@ -374,21 +374,11 @@ void avcodecWrapper::open_video(AVFormatContext *, AVCodec *codec, OutputStream 
     }
 
     /* allocate and init a re-usable frame */
-    ost->frame = alloc_picture(c->pix_fmt);
-    if (!ost->frame) {
-        throw libavException("Could not allocate video frame");
-    }
-
-    /* If the output format is not YUV420P, then a temporary YUV420P
-     * picture is needed too. It is then converted to the required
-     * output format. */
-    ost->tmp_frame = NULL;
-    if (c->pix_fmt != AV_PIX_FMT_YUV420P) {
-        ost->tmp_frame = alloc_picture(AV_PIX_FMT_YUV420P);
-        if (!ost->tmp_frame) {
-            throw libavException("Could not allocate temporary picture");
-        }
-    }
+    ost->frame = NULL;
+    //ost->frame = alloc_picture(c->pix_fmt);
+    //if (!ost->frame) {
+    //    throw libavException("Could not allocate video frame");
+    //}
 
     /* copy the stream parameters to the muxer */
     ret = avcodec_parameters_from_context(ost->st->codecpar, c);
@@ -451,51 +441,102 @@ void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
         }
     }
     avformat_close_input (&fc);
+    avformat_free_context(fc);
 }
+
+//AVFrame *avcodecWrapper::get_video_frame(OutputStream *ost)
+//{
+//    /* check if we want to generate more frames */
+//    if (ost->next_pts >= _numberOfFrames) {
+//        return NULL;
+//    }
+
+//    /* when we pass a frame to the encoder, it may keep a reference to it
+//     * internally; make sure we do not overwrite it here */
+//    if (!(ost->frame->buf[0])) {
+//        av_frame_get_buffer (ost->frame, 0);
+//    }
+//    int ret = av_frame_make_writable(ost->frame);
+//    if (ret < 0) {
+//        throw libavException ("Could not make the frame writable: " + avErrorToQString(ret));
+//    }
+
+
+//    fill_yuv_image(ost->frame, ost->next_pts);
+
+//    ost->frame->pts = ost->next_pts++;
+
+//    return ost->frame;
+//}
 
 AVFrame *avcodecWrapper::get_video_frame(OutputStream *ost)
 {
-    AVCodecContext *c = ost->enc;
-
     /* check if we want to generate more frames */
     if (ost->next_pts >= _numberOfFrames) {
         return NULL;
     }
 
-    /* when we pass a frame to the encoder, it may keep a reference to it
-     * internally; make sure we do not overwrite it here */
-    if (!(ost->frame->buf[0])) {
-        av_frame_get_buffer (ost->frame, 0);
+    AVInputFormat *iformat = NULL;
+    AVFormatContext *format_ctx = NULL;
+    AVCodec *codec;
+    AVCodecContext *codec_ctx;
+    AVFrame *frame;
+    int frame_decoded, ret = 0;
+    AVPacket pkt;
+    AVDictionary *opt=NULL;
+
+    QByteArray filenameBytes = _videoFrames.at(ost->next_pts).toLatin1();
+    const char *filename = filenameBytes.data();
+
+    av_init_packet(&pkt);
+
+    iformat = av_find_input_format("image2pipe");
+    if ((ret = avformat_open_input(&format_ctx, filename, iformat, NULL)) < 0) {
+        return NULL;
     }
-    int ret = av_frame_make_writable(ost->frame);
+
+    if ((ret = avformat_find_stream_info(format_ctx, NULL)) < 0) {
+        return NULL;
+    }
+
+    codec_ctx = format_ctx->streams[0]->codec;
+    codec = avcodec_find_decoder(codec_ctx->codec_id);
+
+    av_dict_set(&opt, "thread_type", "slice", 0);
+    if ((ret = avcodec_open2(codec_ctx, codec, &opt)) < 0) {
+        return NULL;
+    }
+
+    if (!(frame = av_frame_alloc()) ) {
+        return NULL;
+    }
+
+    ret = av_read_frame(format_ctx, &pkt);
     if (ret < 0) {
-        throw libavException ("Could not make the frame writable: " + avErrorToQString(ret));
+        return NULL;
     }
 
-    if (c->pix_fmt != AV_PIX_FMT_YUV420P) {
-        /* as we only generate a YUV420P picture, we must convert it
-         * to the codec pixel format if needed */
-        if (!ost->sws_ctx) {
-            ost->sws_ctx = sws_getContext(c->width, c->height,
-                                          AV_PIX_FMT_YUV420P,
-                                          c->width, c->height,
-                                          c->pix_fmt,
-                                          SWS_BICUBIC, NULL, NULL, NULL);
-            if (!ost->sws_ctx) {
-                throw libavException("Could not initialize the conversion context");
-            }
-        }
-        fill_yuv_image(ost->tmp_frame, ost->next_pts);
-        sws_scale(ost->sws_ctx,
-                  (const uint8_t * const *)ost->tmp_frame->data, ost->tmp_frame->linesize,
-                  0, c->height, ost->frame->data, ost->frame->linesize);
-    } else {
-        fill_yuv_image(ost->frame, ost->next_pts);
+    ret = avcodec_decode_video2(codec_ctx, frame, &frame_decoded, &pkt);
+    if (ret < 0 || !frame_decoded) {
+        return NULL;
     }
 
+    // Unref the old frame:
+    //if (ost->frame) {
+    //    av_frame_unref (ost->frame);
+    //}
+
+    // Store the new one:
+    ost->frame = frame;
     ost->frame->pts = ost->next_pts++;
 
-    return ost->frame;
+    // Deallocate the extra stuff we no longer need, but keep the frame!
+    //av_packet_unref(&pkt);
+    //avcodec_close(codec_ctx);
+    //avformat_close_input(&format_ctx);
+    //av_dict_free(&opt);
+
+    return frame;
 }
 
 /*
@@ -513,6 +554,7 @@ int avcodecWrapper::write_video_frame(AVFormatContext *oc, OutputStream *ost)
     c = ost->enc;
 
     frame = get_video_frame(ost);
+    qDebug() << frame;
 
     av_init_packet(&pkt);
 
@@ -532,14 +574,18 @@ int avcodecWrapper::write_video_frame(AVFormatContext *oc, OutputStream *ost)
         throw libavException("Error while writing video frame: " + avErrorToQString(ret));
     }
 
+    av_packet_unref(&pkt);
+
+    qDebug() << frame << " " << got_packet;
     return (frame || got_packet) ? 0 : 1;
 }
 
 void avcodecWrapper::close_stream(AVFormatContext *, OutputStream *ost)
 {
     avcodec_free_context(&ost->enc);
-    av_frame_free(&ost->frame);
-    av_frame_free(&ost->tmp_frame);
+    if (ost->frame) {
+        //av_frame_free(&ost->frame);
+    }
     sws_freeContext(ost->sws_ctx);
 }
 
@@ -548,7 +594,7 @@ void avcodecWrapper::close_stream(AVFormatContext *, OutputStream *ost)
 
 void avcodecWrapper::wrapMain()
 {
-    OutputStream video_st = { 0 }, audio_st = { 0 };
+    OutputStream video_st, audio_st;
     AVOutputFormat *fmt;
     AVFormatContext *oc;
     AVCodec *audio_codec, *video_codec;
@@ -614,19 +660,22 @@ void avcodecWrapper::wrapMain()
         throw libavException("Error occurred when opening output file: " + avErrorToQString(ret));
     }
 
-    //char tsbuf[AV_TS_MAX_STRING_SIZE];
+    char tsbuf[AV_TS_MAX_STRING_SIZE];
     while (encode_video) {
+        qDebug() << "Encoding a frame...";
         /* select the stream to encode */
         if (encode_video &&
             (!encode_audio || av_compare_ts(video_st.next_pts, video_st.enc->time_base,
                                             audio_st.next_pts, audio_st.enc->time_base) <= 0)) {
-            //qDebug() << "Video PTS " << av_ts_make_time_string (tsbuf, video_st.next_pts, &video_st.enc->time_base);
+            qDebug() << "Video PTS " << av_ts_make_time_string (tsbuf, video_st.next_pts, &video_st.enc->time_base);
             encode_video = !write_video_frame(oc, &video_st);
         } else {
-            //qDebug() << "Audio PTS " << av_ts_make_time_string (tsbuf, audio_st.next_pts, &audio_st.enc->time_base);
+            qDebug() << "Audio PTS " << av_ts_make_time_string (tsbuf, audio_st.next_pts, &audio_st.enc->time_base);
             encode_audio = !write_audio_frame(oc, &audio_st);
         }
+        qDebug() << "Done.";
     }
+    qDebug() << "Finished encoding frames.";
 
     /* Write the trailer, if any. The trailer must be written before you
      * close the CodecContexts open when you wrote the header; otherwise

@@ -15,6 +15,7 @@
 #include <sstream>
 
 #include "avcodecwrapper.h"
+#include "plsexception.h"
 #include "settings.h"
 
 Movie::Movie(const QString &name, bool allowModifications) :
@@ -257,9 +258,19 @@ void Movie::addSoundEffect (const SoundEffect &soundEffect)
     if (!_allowModifications) {
         throw NoChangesNowException ("Cannot add sound effect to movie when it is locked");
     }
-    _soundEffects.insert(_currentFrame, soundEffect);
-    _soundEffects[_currentFrame].setStartFrame(_currentFrame);
-    _soundEffects[_currentFrame].enablePlayback();
+    if (!soundEffect) {
+        // We are really removing this SFX, assuming that it has a valid frame:
+        int frame = soundEffect.getStartFrame();
+        if (frame >= 0 && frame < _numberOfFrames) {
+            if (_soundEffects.contains(frame)) {
+                _soundEffects.remove(frame);
+            }
+        }
+    } else {
+        _soundEffects.insert(_currentFrame, soundEffect);
+        _soundEffects[_currentFrame].setStartFrame(_currentFrame);
+        _soundEffects[_currentFrame].enablePlayback();
+    }
     save();
 }
 
@@ -374,14 +385,18 @@ bool Movie::load (const QString &filename)
             QJsonObject sfxObject (sfxArray[sfxIndex].toObject());
             SoundEffect sfx;
             sfx.load (sfxObject);
-            _soundEffects.insert(sfx.getStartFrame(), sfx);
-            _soundEffects[sfx.getStartFrame()].enablePlayback();
+            if (sfx) {
+                _soundEffects.insert(sfx.getStartFrame(), sfx);
+                _soundEffects[sfx.getStartFrame()].enablePlayback();
+            }
         }
     }
     if (json.contains("backgroundMusic")) {
         QJsonObject backgroundObject (json["backgroundMusic"].toObject());
         _backgroundMusic.load (backgroundObject);
-        _backgroundMusic.enablePlayback();
+        if (_backgroundMusic) {
+            _backgroundMusic.enablePlayback();
+        }
     }
 
     _encodingFilename = json["encodingFilename"].toString();
@@ -424,6 +439,10 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     double tsDuration = settings.Get("settings/titleScreenDuration").toDouble();
 
     for (auto sfx: _soundEffects) {
+        if (!sfx) {
+            qDebug() << "Empty SFX found!";
+            continue;
+        }
         encoder.AddAudioFile(sfx, ptsDuration+tsDuration);
     }
     int w = settings.Get("settings/imageWidth").toInt();
@@ -435,6 +454,10 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
         encoder.Encode(filename, resolution.width(), resolution.height(),_framesPerSecond);
     } catch (const avcodecWrapper::libavException &e) {
         throw EncodingFailedException (e.message());
+    } catch (const PLSException &e) {
+        throw EncodingFailedException (e.message());
+    } catch (...) {
+        throw EncodingFailedException ("The encoding failed with an unrecognized error");
     }
 
     for (auto tempFile: _encodingTempFiles) {

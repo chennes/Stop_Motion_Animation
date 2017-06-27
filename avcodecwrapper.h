@@ -41,6 +41,15 @@ private:
     // A utility wrapper around a single output AVStream, used internally only
     class OutputStream {
     public:
+
+        OutputStream () :
+            st (NULL),
+            enc(NULL),
+            next_pts(0),
+            samples_count(0),
+            frame(NULL),
+            sws_ctx (NULL) {}
+
         AVStream *st;
         AVCodecContext *enc;
 
@@ -49,7 +58,6 @@ private:
         int samples_count;
 
         AVFrame *frame;
-        AVFrame *tmp_frame;
 
         struct SwsContext *sws_ctx;
     };

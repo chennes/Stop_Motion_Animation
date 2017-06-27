@@ -224,6 +224,8 @@ void StopMotionAnimation::saveFinalMovieAccepted()
         QDesktopServices::openUrl (QUrl::fromLocalFile(filename));
     } catch (const Movie::EncodingFailedException &e) {
         _errorDialog.showMessage(e.message());
+    } catch (...) {
+        _errorDialog.showMessage("An unknown error occurred while encoding.");
     }
 }
 

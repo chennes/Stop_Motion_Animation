@@ -47,7 +47,7 @@ AVFrame *AudioInputStream::GetNextFrame()
             // Nope... no frames, push in more data
             ret = av_read_frame (_formatContext, &_packet);
             if (ret == AVERROR_EOF) {
-                ret = avcodec_send_packet(_codecContext, NULL);
+                avcodec_send_packet(_codecContext, NULL);
             } else if (ret != AVERROR(EAGAIN)){
                 CheckAndThrow(ret);
                 ret = avcodec_send_packet(_codecContext, &_packet);
