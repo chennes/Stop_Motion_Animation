@@ -381,6 +381,8 @@ void StopMotionAnimation::movieFrameChanged (unsigned int newFrame)
 
 void StopMotionAnimation::setState (State newState)
 {
+    if (_state == newState) return;
+
     _state = newState;
     switch (_state) {
     case State::LIVE:
@@ -451,6 +453,11 @@ void StopMotionAnimation::updateInterfaceForNewFrame()
         ui->deletePhotoButton->setDisabled(true);
         ui->backgroundMusicButton->setDisabled(true);
         ui->createFinalMovieButton->setDisabled(true);
+
+        // If we just deleted the last frame (or something), we have to make sure we
+        // are stopped, because with the play button disabled there is no stop button!
+        setState (State::LIVE);
+        _movie->stop();
     }
 }
 
