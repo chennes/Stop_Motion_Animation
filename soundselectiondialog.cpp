@@ -180,7 +180,6 @@ void SoundSelectionDialog::readFinished ()
     _waveform->bufferComplete();
 
     _player->setMedia(QUrl::fromLocalFile(_filename));
-    _player->setVolume(50);
 
     ui->playPauseButton->setDisabled(false);
     ui->removeMusicButton->setDisabled(false);

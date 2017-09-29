@@ -184,20 +184,7 @@ void SoundEffect::enablePlayback()
 
 void SoundEffect::play () const
 {
-    if (!_playbackEnabled) {
-        qDebug() << "Playback was disabled!";
-        return;
-    }
-    if (_out > _in || _out == 0.0) {
-        _playback->stop();
-        _isPlaying = true;
-        _playback->setPosition(1000 * _in);
-        _playback->setVolume(_volume);
-        _playback->play();
-        if (_out != 0.0) {
-            QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
-        }
-    }
+    playFrom(0.0);
 }
 
 
@@ -207,13 +194,15 @@ void SoundEffect::playFrom (double t) const
         qDebug() << "Playback was disabled!";
         return;
     }
-    if (_out > _in) {
+    if (_out > _in || _out == 0.0) {
         _isPlaying = true;
         _playback->setPosition(1000 * (t+_in));
+        _playback->setVolume(_volume);
         _playback->play();
-        QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
+        if (_out != 0.0) {
+            QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
+        }
     }
-
 }
 
 
