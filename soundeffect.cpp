@@ -10,7 +10,7 @@ SoundEffect::SoundEffect(const QString &filename):
     _startFrame(0),
     _in(0.0),
     _out(0.0),
-    _volume(1.0),
+    _volume(100),
     _playbackEnabled (false),
     _isPlaying (false)
 {

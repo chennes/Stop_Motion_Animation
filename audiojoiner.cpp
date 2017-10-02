@@ -126,7 +126,7 @@ void AudioJoiner::StartStream()
         QString delayArgs(QString ("adelay=") + channelDelays);
         QString padArgs("apad"); // No need to specify any parameters
         QString volumeArgs(QString ("volume=") +
-                           "volume=" + QString::number(file.volume));
+                           "volume=" + QString::number(file.volume / 100.0));
 
         // Concatenate them into a single branch of the filter graph and store it
         filterChain.append (inputName);
