@@ -52,6 +52,8 @@ public:
 
     void play (int startFrame, QLabel *video);
 
+    void playSoundEffect (const SoundEffect &sfx, QLabel *video);
+
     void stop ();
 
     void addBackgroundMusic (const SoundEffect &backgroundMusic);
@@ -127,6 +129,7 @@ private:
     qint32 _skippedFrameCounter;
     qint32 _computerSpeedAdjust;
     QTime _playStartTime;
+    bool _mute;
 
 public:
 

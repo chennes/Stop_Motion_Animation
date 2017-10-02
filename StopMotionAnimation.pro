@@ -35,7 +35,8 @@ SOURCES += main.cpp \
            movieframeslider.cpp \
            addtopreviousmoviedialog.cpp \
            cameramonitor.cpp \
-    importprogressdialog.cpp
+    importprogressdialog.cpp \
+    soundeffectlistdialog.cpp
 
 HEADERS  += stopmotionanimation.h \
             movie.h \
@@ -61,7 +62,8 @@ HEADERS  += stopmotionanimation.h \
             movieframeslider.h \
             addtopreviousmoviedialog.h \
             cameramonitor.h \
-    importprogressdialog.h
+    importprogressdialog.h \
+    soundeffectlistdialog.h
 
 FORMS    += stopmotionanimation.ui \
             helpdialog.ui \
@@ -71,7 +73,8 @@ FORMS    += stopmotionanimation.ui \
             frameeditor.ui \
             soundselectiondialog.ui \
             addtopreviousmoviedialog.ui \
-    importprogressdialog.ui
+    importprogressdialog.ui \
+    soundeffectlistdialog.ui
 
 RESOURCES += \
     resources.qrc

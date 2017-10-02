@@ -57,24 +57,17 @@ SoundEffect& SoundEffect::operator= (const SoundEffect& rhs)
 
 bool SoundEffect::operator== (const SoundEffect& rhs) const
 {
+    // Here we treat the sound effect as identical if it starts at the same frame and has the
+    // same filename. The other quantities are floating point numbers and should not be used
+    // in comparisons here due to rounding in the user interface.
     return (_filename == rhs._filename &&
-            _startFrame == rhs._startFrame &&
-            _in == rhs._in &&
-            _out == rhs._out);
+            _startFrame == rhs._startFrame);
 }
 
 bool SoundEffect::operator< (const SoundEffect& rhs) const
 {
     if (_startFrame == rhs._startFrame) {
-        if (_filename == rhs._filename) {
-            if (_in == rhs._in) {
-                return _out < rhs._out;
-            } else {
-                return _in < rhs._in;
-            }
-        } else {
-            return _filename < rhs._filename;
-        }
+        return _filename < rhs._filename;
     } else {
         return _startFrame < rhs._startFrame;
     }

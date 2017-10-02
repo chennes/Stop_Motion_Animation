@@ -12,6 +12,7 @@
 #include "soundselectiondialog.h"
 #include "savefinalmoviedialog.h"
 #include "addtopreviousmoviedialog.h"
+#include "soundeffectlistdialog.h"
 #include "previousframeoverlayeffect.h"
 #include "cameramonitor.h"
 
@@ -68,6 +69,18 @@ private slots:
 
     void updateInterfaceForNewFrame();
 
+    void on_soundEffectNumberLabel_linkActivated(const QString &link);
+
+    void soundEffectListSelected(const SoundEffect &sfx);
+
+    void soundEffectListEdit(const SoundEffect &sfx);
+
+    void soundEffectListRemove(const SoundEffect &sfx);
+
+    void soundEffectListPlay(const SoundEffect &sfx);
+
+    void updateSoundEffectLabel ();
+
 private:
     Ui::StopMotionAnimation *ui;
 
@@ -83,6 +96,7 @@ protected:
 
 
 private:
+    static const int MAX_SOUND_EFFECTS = 25;
     QCamera *_camera;
     QCameraInfo _cameraInfo;
     CameraMonitor *_cameraMonitor;
@@ -100,6 +114,7 @@ private:
     SoundSelectionDialog _soundEffects;
     SaveFinalMovieDialog _saveFinalMovie;
     AddToPreviousMovieDialog _addToPrevious;
+    SoundEffectListDialog _sfxListDialog;
 
 };
 

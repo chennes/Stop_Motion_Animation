@@ -13,6 +13,7 @@
 #include <thread>
 #include <fstream>
 #include <sstream>
+#include <functional>
 
 #include "avcodecwrapper.h"
 #include "plsexception.h"
@@ -24,7 +25,8 @@ Movie::Movie(const QString &name, bool allowModifications) :
     _currentlyPlaying (false),
     _currentFrame (-1),
     _computerSpeedAdjust (0),
-    _allowModifications (allowModifications)
+    _allowModifications (allowModifications),
+    _mute (false)
 {
     Settings settings;
 
@@ -168,6 +170,26 @@ QString Movie::getMostRecentFrame () const
     return getImageFilename (_numberOfFrames-1);
 }
 
+void Movie::playSoundEffect(const SoundEffect &sfx, QLabel *video)
+{
+    _mute = true;
+    auto memberSFX = std::find(_soundEffects.begin(), _soundEffects.end(), sfx);
+    if (memberSFX == _soundEffects.end()) {
+        throw std::runtime_error ("Internal error: sound effect not found in movie.");
+    }
+    auto startFrame = memberSFX->getStartFrame();
+    auto duration = sfx.getOutPoint()-sfx.getInPoint();
+    if (duration*_framesPerSecond + startFrame > _numberOfFrames) {
+        // Correct for durations that extend past the end of the current movie.
+        duration = double(_numberOfFrames-startFrame-1)/_framesPerSecond;
+        qDebug() << "Playing SFX for " << duration << " seconds";
+    }
+    play (startFrame, video);
+    memberSFX->play();
+    QTimer::singleShot (int(1000*duration), this, &Movie::stop);
+    QTimer::singleShot (int(1000*duration)+10, this, std::bind(&Movie::setStillFrame, this, startFrame, video));
+}
+
 void Movie::setStillFrame (qint32 frameNumber, QLabel *video)
 {
     if (frameNumber < _numberOfFrames) {
@@ -190,7 +212,7 @@ void Movie::play (qint32 startFrame, QLabel *video)
     _skippedFrameCounter = 0;
     _playStartTime.start();
     setStillFrame (startFrame, video);
-    if (_backgroundMusic) {
+    if (_backgroundMusic && !_mute) {
         Settings settings;
         double tOffset = settings.Get("settings/preTitleScreenDuration").toDouble() +
                          settings.Get("settings/titleScreenDuration").toDouble();
@@ -230,12 +252,12 @@ void Movie::nextFrame ()
             setStillFrame (targetFrame, _frameDestination);
             if (frameAdjust > 0) {
                 for (int adjustment = frameAdjust; adjustment >= 1; adjustment--) {
-                    if (_soundEffects.contains(targetFrame-adjustment)) {
+                    if (!_mute && _soundEffects.contains(targetFrame-adjustment)) {
                         _soundEffects[targetFrame-adjustment].play();
                     }
                 }
             }
-            if (_soundEffects.contains(targetFrame)) {
+            if (!_mute && _soundEffects.contains(targetFrame)) {
                 _soundEffects[targetFrame].play();
             }
 
@@ -246,6 +268,7 @@ void Movie::nextFrame ()
 void Movie::stop ()
 {
     _currentlyPlaying = false;
+    _mute = false;
     _playbackTimer.stop();
     _backgroundMusic.stop();
     for (auto &&sfx: _soundEffects) {
@@ -319,6 +342,15 @@ SoundEffect Movie::getSoundEffect (int frame) const
     } else {
         return SoundEffect();
     }
+}
+
+QList<SoundEffect> Movie::getSoundEffects () const
+{
+    QList<SoundEffect> returnedSFX;
+    for (auto &&sfx:_soundEffects) {
+        returnedSFX.append(sfx);
+    }
+    return returnedSFX;
 }
 
 void Movie::removeSoundEffect (const SoundEffect &soundEffect)
@@ -483,14 +515,6 @@ void Movie::encodeToFile (const QString &filename, const QString &title, const Q
     } catch (...) {
         throw EncodingFailedException ("The encoding failed with an unrecognized error");
     }
-
-    for (auto tempFile: _encodingTempFiles) {
-        QFile f (tempFile);
-        if (!f.remove()) {
-            qDebug() << "Failed to remove " << tempFile;
-        }
-    }
-    _encodingTempFiles.clear();
 }
 
 

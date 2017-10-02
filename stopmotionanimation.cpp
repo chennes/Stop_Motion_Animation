@@ -51,10 +51,17 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     ui->soundEffectButton->installEventFilter(this);
     ui->startNewMovieButton->installEventFilter(this);
     ui->takePhotoButton->installEventFilter(this);
+    ui->soundEffectNumberLabel->installEventFilter(this);
 
     connect (&_backgroundMusic, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setBackgroundMusic);
     connect (&_soundEffects, &SoundSelectionDialog::accepted, this, &StopMotionAnimation::setSoundEffect);
     connect (&_addToPrevious, &AddToPreviousMovieDialog::accepted, this, &StopMotionAnimation::addToPrevious);
+
+    // The SFX list dialog works a bit like a "remote control" for the main interface, all its main functions are really implemented here
+    connect (&_sfxListDialog, &SoundEffectListDialog::selected, this, &StopMotionAnimation::soundEffectListSelected);
+    connect (&_sfxListDialog, &SoundEffectListDialog::edit, this, &StopMotionAnimation::soundEffectListEdit);
+    connect (&_sfxListDialog, &SoundEffectListDialog::remove, this, &StopMotionAnimation::soundEffectListRemove);
+    connect (&_sfxListDialog, &SoundEffectListDialog::play, this, &StopMotionAnimation::soundEffectListPlay);
 
     // Remove the Help icon menu from the Help dialog
     Qt::WindowFlags flags = _help.windowFlags();
@@ -156,6 +163,7 @@ void StopMotionAnimation::startNewMovie ()
     setState (State::LIVE);
     updateInterfaceForNewFrame();
     adjustSize();
+    updateSoundEffectLabel();
 }
 
 void StopMotionAnimation::cameraLost ()
@@ -197,6 +205,7 @@ void StopMotionAnimation::addToPrevious ()
             updateInterfaceForNewFrame();
             setState(State::STILL); // We MUST set the state before the frame
             _movie->setStillFrame (0, ui->videoLabel);
+            updateSoundEffectLabel();
         }
         try {
             _overlayEffect->setPreviousFrame(_movie->getMostRecentFrame());
@@ -320,14 +329,20 @@ void StopMotionAnimation::setSoundEffect()
 {
     _movie->addSoundEffect (_soundEffects.getSelectedSound());
     ui->soundEffectButton->setText("Edit sound effect...");
+    updateSoundEffectLabel();
 }
 
 void StopMotionAnimation::on_soundEffectButton_clicked()
 {
     if (_state == State::STILL) {
         int frame = ui->frameNumberLabel->text().toInt() - 1;
-        _soundEffects.setSound(_movie->getSoundEffect(frame));
-        _soundEffects.show();
+        const SoundEffect &sfx (_movie->getSoundEffect(frame));
+        if (sfx && _movie->getSoundEffects().length() >= MAX_SOUND_EFFECTS) {
+            _errorDialog.showMessage("Sound effect limit reached; no more effects can be added.");
+        } else {
+            _soundEffects.setSound(sfx);
+            _soundEffects.show();
+        }
     }
 }
 
@@ -532,4 +547,40 @@ bool StopMotionAnimation::eventFilter(QObject *, QEvent *event)
 void StopMotionAnimation::keyReleaseEvent(QKeyEvent * e)
 {
     QMainWindow::keyReleaseEvent(e);
+}
+
+void StopMotionAnimation::on_soundEffectNumberLabel_linkActivated(const QString &)
+{
+    _sfxListDialog.RemoveAllSoundEffects();
+    _sfxListDialog.AddSoundEffects(_movie->getSoundEffects());
+    _sfxListDialog.show();
+}
+
+void StopMotionAnimation::soundEffectListSelected(const SoundEffect &sfx)
+{
+    ui->horizontalSlider->setValue(sfx.getStartFrame()+1);
+}
+
+void StopMotionAnimation::soundEffectListEdit(const SoundEffect &)
+{
+    on_soundEffectButton_clicked();
+}
+
+void StopMotionAnimation::soundEffectListRemove(const SoundEffect &sfx)
+{
+    _movie->removeSoundEffect(sfx);
+    updateSoundEffectLabel();
+}
+
+void StopMotionAnimation::soundEffectListPlay(const SoundEffect &sfx)
+{
+    _movie->playSoundEffect (sfx, ui->videoLabel);
+}
+
+void StopMotionAnimation::updateSoundEffectLabel()
+{
+    QString newLabelText;
+    QString numSFX = QString::number(_movie->getSoundEffects().length());
+    newLabelText = QString("<html><body><p align=\"center\"><a href=\"#\">") + numSFX + QString (" of ") + QString::number(MAX_SOUND_EFFECTS) + QString(" sounds</a></p></body></html>");
+    ui->soundEffectNumberLabel->setText(newLabelText);
 }
