@@ -284,7 +284,7 @@ SoundEffect SoundSelectionDialog::getSelectedSound () const
                                                       QAudio::LinearVolumeScale);
         double in = (double)_waveform->getSelectionStart() / 1000.0;
         double out = in + (double)_waveform->getSelectionLength() / 1000.0;
-        return SoundEffect (_filename, 0, in, out, linearVolume);
+        return SoundEffect (_filename, 0, in, out, qRound(linearVolume * 100));
     } else {
         return SoundEffect ();
     }

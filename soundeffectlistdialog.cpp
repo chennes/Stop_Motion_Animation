@@ -25,7 +25,7 @@ void SoundEffectListDialog::AddSoundEffect(const SoundEffect &sfx)
     auto outPoint = sfx.getOutPoint();
     auto duration = outPoint - inPoint;
     auto linearVolume = sfx.getVolume();
-    qreal logVolume = QAudio::convertVolume(linearVolume * qreal(100.0),
+    qreal logVolume = QAudio::convertVolume(linearVolume,
                                             QAudio::LinearVolumeScale,
                                             QAudio::LogarithmicVolumeScale);
 
@@ -34,7 +34,7 @@ void SoundEffectListDialog::AddSoundEffect(const SoundEffect &sfx)
     QTableWidgetItem *newItemStart   = new QTableWidgetItem(QString::number(inPoint)); // Start
     QTableWidgetItem *newItemEnd   = new QTableWidgetItem(QString::number(outPoint)); // End
     QTableWidgetItem *newItemDuration   = new QTableWidgetItem(QString::number(duration)); // Duration
-    QTableWidgetItem *newItemVolume   = new QTableWidgetItem(QString::number(logVolume)); // Volume
+    QTableWidgetItem *newItemVolume   = new QTableWidgetItem(QString::number(logVolume*100)); // Volume
 
     auto row = ui->tableWidget->rowCount();
     ui->tableWidget->insertRow(ui->tableWidget->rowCount());
@@ -122,6 +122,6 @@ SoundEffect SoundEffectListDialog::SFXFromRow(int row) const
                                                QAudio::LogarithmicVolumeScale,
                                                QAudio::LinearVolumeScale);
 
-    SoundEffect sfx (filename, startFrame, inPoint, outPoint, linearVolume);
+    SoundEffect sfx (filename, startFrame, inPoint, outPoint, linearVolume*100);
     return sfx;
 }
