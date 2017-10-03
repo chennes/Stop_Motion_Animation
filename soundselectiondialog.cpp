@@ -147,15 +147,15 @@ void SoundSelectionDialog::readFinished ()
         _waveform->setSelectionStart (_sfx.getInPoint()*1000);
         _waveform->setSelectionLength ((_sfx.getOutPoint()-_sfx.getInPoint())*1000);
 
-        double logVolume = QAudio::convertVolume(_sfx.getVolume(),
-                                                      QAudio::LinearVolumeScale,
-                                                      QAudio::LogarithmicVolumeScale);
+        double logVolume = QAudio::convertVolume(_sfx.getVolume()/qreal(100.0),
+                                                 QAudio::LinearVolumeScale,
+                                                 QAudio::LogarithmicVolumeScale);
 
         ui->volumeSlider->setValue (qRound(logVolume * 100));
     } else {
         _waveform->setSelectionStart(0);
         _waveform->setSelectionLength(0);
-        ui->volumeSlider->setValue (100);
+        ui->volumeSlider->setValue (50);
     }
 
     if (_mode==Mode::BACKGROUND_MUSIC) {

@@ -330,6 +330,11 @@ void StopMotionAnimation::setSoundEffect()
     _movie->addSoundEffect (_soundEffects.getSelectedSound());
     ui->soundEffectButton->setText("Edit sound effect...");
     updateSoundEffectLabel();
+    if (_sfxListDialog.isVisible()) {
+        _sfxListDialog.RemoveAllSoundEffects();
+        _sfxListDialog.AddSoundEffects(_movie->getSoundEffects());
+        _sfxListDialog.activateWindow();
+    }
 }
 
 void StopMotionAnimation::on_soundEffectButton_clicked()
