@@ -155,9 +155,13 @@ void StopMotionAnimation::startNewMovie ()
         _camera->setCaptureMode(QCamera::CaptureStillImage);
         _camera->start();
         _cameraMonitor->start();
+        ui->videoLabel->hide();
+        ui->frameLabel->show();
     } else {
         // This should display an error of some kind...
         ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
+        ui->videoLabel->show();
+        ui->frameLabel->hide();
     }
 
     setState (State::LIVE);
@@ -172,6 +176,8 @@ void StopMotionAnimation::cameraLost ()
         delete _camera;
         _camera = NULL;
         ui->videoLabel->setText("<big><b>ERROR:</b> Camera disconnected. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
+        ui->videoLabel->show();
+        ui->frameLabel->hide();
         setState (State::LIVE);
         updateInterfaceForNewFrame();
     }
