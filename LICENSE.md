@@ -1,6 +1,6 @@
 # License
 
-Copyright (c) 2015 Pioneer Library System
+Copyright (c) 2017 Pioneer Library System
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
