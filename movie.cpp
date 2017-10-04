@@ -24,8 +24,9 @@ Movie::Movie(const QString &name, bool allowModifications) :
     _numberOfFrames (0),
     _currentlyPlaying (false),
     _currentFrame (-1),
-    _computerSpeedAdjust (0),
     _allowModifications (allowModifications),
+    _skippedFrameCounter(0),
+    _computerSpeedAdjust (0),
     _mute (false)
 {
     Settings settings;

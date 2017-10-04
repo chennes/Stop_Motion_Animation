@@ -18,12 +18,21 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
     _camera(NULL),
+    _viewfinder(NULL),
     _cameraMonitor (NULL),
     _keydownState (KeydownState::NONE),
     _backgroundMusic (SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
     _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
     ui->setupUi(this);
+
+    _viewfinder = new QCameraViewfinder(this);
+    _viewfinder->setBaseSize(640, 480);
+    _viewfinder->setMinimumSize(640,480);
+    _viewfinder->setMaximumSize(640,480);
+    ui->videoRegionLayout->insertWidget(2,_viewfinder); // After the spacer and still image widgets
+    _viewfinder->hide();
+
     this->setWindowTitle(QCoreApplication::applicationName() + " -- v" + APP_VERSION + "-" + APP_REVISION);
     connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
     Settings settings;
@@ -34,13 +43,13 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     startNewMovie();
     adjustSize();
     _overlayEffect = new PreviousFrameOverlayEffect();
-    ui->cameraViewfinder->setGraphicsEffect(_overlayEffect);
+    _viewfinder->setGraphicsEffect(_overlayEffect);
     _overlayEffect->setEnabled(false);
 
     // Grab the x, z, and spacebar keys from everything that might conceivably get them:
     ui->addToPreviousButton->installEventFilter(this);
     ui->backgroundMusicButton->installEventFilter(this);
-    ui->cameraViewfinder->installEventFilter(this);
+    _viewfinder->installEventFilter(this);
     ui->createFinalMovieButton->installEventFilter(this);
     ui->deletePhotoButton->installEventFilter(this);
     ui->helpButton->installEventFilter(this);
@@ -150,18 +159,16 @@ void StopMotionAnimation::startNewMovie ()
         _cameraMonitor = new CameraMonitor (this, _cameraInfo);
         connect (_cameraMonitor, &CameraMonitor::cameraLost, this, &StopMotionAnimation::cameraLost);
         connect (_cameraMonitor, &CameraMonitor::finished, _cameraMonitor, &QObject::deleteLater);
-        _camera->setViewfinder (ui->cameraViewfinder);
+        _camera->setViewfinder (_viewfinder);
         _camera->setViewfinderSettings(_viewFinderSettings);
         _camera->setCaptureMode(QCamera::CaptureStillImage);
         _camera->start();
         _cameraMonitor->start();
-        ui->videoLabel->hide();
-        ui->frameLabel->show();
     } else {
         // This should display an error of some kind...
         ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
+        _viewfinder->hide();
         ui->videoLabel->show();
-        ui->frameLabel->hide();
     }
 
     setState (State::LIVE);
@@ -176,8 +183,6 @@ void StopMotionAnimation::cameraLost ()
         delete _camera;
         _camera = NULL;
         ui->videoLabel->setText("<big><b>ERROR:</b> Camera disconnected. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
-        ui->videoLabel->show();
-        ui->frameLabel->hide();
         setState (State::LIVE);
         updateInterfaceForNewFrame();
     }
@@ -407,18 +412,16 @@ void StopMotionAnimation::movieFrameChanged (unsigned int newFrame)
 
 void StopMotionAnimation::setState (State newState)
 {
-    if (_state == newState) return;
-
     _state = newState;
     switch (_state) {
     case State::LIVE:
         if (_camera) {
             ui->videoLabel->hide();
-            ui->cameraViewfinder->show();
+            _viewfinder->show();
             ui->takePhotoButton->setDefault(true);
             ui->takePhotoButton->setEnabled(true);
         } else {
-            ui->cameraViewfinder->hide();
+            _viewfinder->hide();
             ui->videoLabel->show();
             ui->takePhotoButton->setDefault(false);
             ui->takePhotoButton->setEnabled(false);
@@ -431,7 +434,7 @@ void StopMotionAnimation::setState (State newState)
     case State::PLAYBACK:
         ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Stop");
-        ui->cameraViewfinder->hide();
+        _viewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
         ui->takePhotoButton->setEnabled(false);
@@ -440,13 +443,15 @@ void StopMotionAnimation::setState (State newState)
     case State::STILL:
         ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Play");
-        ui->cameraViewfinder->hide();
+        _viewfinder->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
         ui->takePhotoButton->setEnabled(false);
         ui->soundEffectButton->setEnabled(true);
         break;
     }
+    qDebug() << "Video label: " << ui->videoLabel->isVisible();
+    qDebug() << "Viewfinder:  " << _viewfinder->isVisible();
 }
 
 

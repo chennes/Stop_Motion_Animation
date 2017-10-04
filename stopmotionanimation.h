@@ -5,6 +5,7 @@
 #include <QErrorMessage>
 #include <QtMultimedia/QCamera>
 #include <QtMultimedia/QCameraInfo>
+#include <QCameraViewfinder>
 #include "movie.h"
 #include "soundeffect.h"
 #include "helpdialog.h"
@@ -98,6 +99,7 @@ protected:
 private:
     static const int MAX_SOUND_EFFECTS = 25;
     QCamera *_camera;
+    QCameraViewfinder *_viewfinder;
     QCameraInfo _cameraInfo;
     CameraMonitor *_cameraMonitor;
     QCameraViewfinderSettings _viewFinderSettings;

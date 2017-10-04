@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>831</width>
-    <height>1129</height>
+    <width>813</width>
+    <height>645</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -180,6 +180,9 @@
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="spacing">
+       <number>6</number>
+      </property>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -299,23 +302,23 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>0</width>
           <height>20</height>
          </size>
         </property>
        </spacer>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="videoRegionLayout">
         <item>
-         <spacer name="verticalSpacer_4">
+         <spacer name="verticalSpacer_2">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>20</width>
-            <height>40</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
          </spacer>
@@ -349,36 +352,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QCameraViewfinder" name="cameraViewfinder" native="true">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>640</width>
-            <height>480</height>
-           </size>
-          </property>
-          <property name="toolTipDuration">
-           <number>0</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_2">
+         <spacer name="verticalSpacer_4">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>20</width>
-            <height>40</height>
+            <width>0</width>
+            <height>0</height>
            </size>
           </property>
          </spacer>
@@ -392,7 +373,7 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>0</width>
           <height>20</height>
          </size>
         </property>
@@ -442,7 +423,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>831</width>
+     <width>813</width>
      <height>21</height>
     </rect>
    </property>
@@ -450,12 +431,6 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>QCameraViewfinder</class>
-   <extends>QWidget</extends>
-   <header>QtMultimediaWidgets/QCameraViewfinder</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>MovieFrameSlider</class>
    <extends>QSlider</extends>
