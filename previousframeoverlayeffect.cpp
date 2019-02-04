@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <QFile>
+#include "settings.h"
 
 PreviousFrameOverlayEffect::PreviousFrameOverlayEffect() :
     _frameNeedsUpdate (false),
@@ -49,11 +50,16 @@ void PreviousFrameOverlayEffect::draw(QPainter *painter)
     QImage overlaidImage (rect.width(), rect.height(), QImage::Format_ARGB32_Premultiplied);
     QPainter overlaidPainter (&overlaidImage);
     overlaidPainter.setCompositionMode(QPainter::CompositionMode_Source);
+
+    Settings settings;
+    int w = settings.Get("settings/imageWidth").toInt();
+    int h = settings.Get("settings/imageHeight").toInt();
+
     if (_mode == Mode::BLEND) {
-        overlaidPainter.drawPixmap(0,0,640,480,pixmap);
+        overlaidPainter.drawPixmap(0,0,w,h,pixmap);
         overlaidPainter.setCompositionMode(QPainter::CompositionMode_Screen);
     }
-    overlaidPainter.drawPixmap(0,0,640,480, _previousFrame);
+    overlaidPainter.drawPixmap(0,0,w,h, _previousFrame);
     overlaidPainter.end();
 
     painter->drawImage(rect, overlaidImage);

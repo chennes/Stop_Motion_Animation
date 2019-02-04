@@ -18,7 +18,7 @@ class Waveform : public QGraphicsView
     Q_OBJECT
 
 public:
-    Waveform(QWidget *parent = NULL);
+    Waveform(QWidget *parent = nullptr);
 
     virtual ~Waveform();
 
@@ -57,8 +57,8 @@ protected:
     virtual void resizeEvent(QResizeEvent *event);
     //virtual void paintEvent(QPaintEvent *event);
 
-    qint64 pixelsToMillis(int pixels) const;
-    int millisToPixels (qint64 millis) const;
+    qint64 pixelsToMillis(qint64 pixels) const;
+    qint64 millisToPixels (qint64 millis) const;
 
 protected:
     QGraphicsScene _scene;

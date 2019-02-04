@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QAudioDecoder>
 #include <QTimer>
+#include <QStyle>
 #include "settings.h"
 #include "settingsdialog.h"
 
@@ -16,9 +17,9 @@
 SoundSelectionDialog::SoundSelectionDialog(Mode mode, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::SoundSelectionDialog),
-    _fileDialog (NULL),
+    _fileDialog (nullptr),
     _mode (mode),
-    _decoder(NULL),
+    _decoder(nullptr),
     _musicSet (false),
     _loading (false)
 {
@@ -144,8 +145,8 @@ void SoundSelectionDialog::readFinished ()
     Settings settings;
     _waveform->setDuration(_decoder->duration());
     if (_sfx) {
-        _waveform->setSelectionStart (_sfx.getInPoint()*1000);
-        _waveform->setSelectionLength ((_sfx.getOutPoint()-_sfx.getInPoint())*1000);
+        _waveform->setSelectionStart (int(_sfx.getInPoint()*1000));
+        _waveform->setSelectionLength (int((_sfx.getOutPoint())-_sfx.getInPoint()*1000));
 
         double logVolume = QAudio::convertVolume(_sfx.getVolume()/qreal(100.0),
                                                  QAudio::LinearVolumeScale,
@@ -167,13 +168,13 @@ void SoundSelectionDialog::readFinished ()
         MultiRegionWaveform *w = dynamic_cast<MultiRegionWaveform *> (_waveform);
         w->ClearRegions();
         qint64 offset = 0;
-        w->AddRegion("Intro", offset, offset+preTitleDuration*1000, Qt::black);
+        w->AddRegion("Intro", offset, int(offset+preTitleDuration*1000), Qt::black);
         offset += preTitleDuration*1000;
-        w->AddRegion("Title", offset, offset+titleDuration*1000, Qt::black);
+        w->AddRegion("Title", offset, int(offset+titleDuration*1000), Qt::black);
         offset += titleDuration*1000;
-        w->AddRegion("Movie", offset, offset+movieDuration*1000, Qt::blue);
+        w->AddRegion("Movie", offset, int(offset+movieDuration*1000), Qt::blue);
         offset += movieDuration*1000;
-        w->AddRegion("Credits", offset, offset+creditsDuration*1000, Qt::black);
+        w->AddRegion("Credits", offset, int(offset+creditsDuration*1000), Qt::black);
         w->DoneAddingRegions();
     }
     _musicSet = true;
@@ -282,8 +283,8 @@ SoundEffect SoundSelectionDialog::getSelectedSound () const
         double linearVolume = QAudio::convertVolume(ui->volumeSlider->value() / qreal(100.0),
                                                       QAudio::LogarithmicVolumeScale,
                                                       QAudio::LinearVolumeScale);
-        double in = (double)_waveform->getSelectionStart() / 1000.0;
-        double out = in + (double)_waveform->getSelectionLength() / 1000.0;
+        double in = double(_waveform->getSelectionStart()) / 1000.0;
+        double out = in + double(_waveform->getSelectionLength()) / 1000.0;
         return SoundEffect (_filename, 0, in, out, qRound(linearVolume * 100));
     } else {
         return SoundEffect ();

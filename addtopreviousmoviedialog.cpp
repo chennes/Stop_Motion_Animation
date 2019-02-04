@@ -64,7 +64,7 @@ void AddToPreviousMovieDialog::Reset ()
                         // 3 - Last week (really, to the previous Monday)
                         // 4 - Earlier
                         int insertionItem;
-                        int daysToToday = abs(timestamp.daysTo(QDateTime::currentDateTime()));
+                        int daysToToday = int(abs(timestamp.daysTo(QDateTime::currentDateTime())));
                         int daysToMonday = QDate::currentDate().dayOfWeek() - 1;
                         if (daysToToday <= 0) {
                             insertionItem = 0;

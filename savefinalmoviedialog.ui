@@ -13,14 +13,23 @@
     <height>300</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
    <string>Save Final Movie</string>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="movieTitleLabel">
        <property name="text">
         <string>Name of your movie:</string>
        </property>
@@ -32,7 +41,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="creditsLabel">
      <property name="text">
       <string>Credits:</string>
      </property>
@@ -51,14 +60,14 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="movieSaveLocationLabel">
+      <widget class="QLabel" name="preLabel">
        <property name="text">
         <string>Your movie will be saved in </string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_4">
+      <widget class="QLabel" name="movieSaveLocationLabel">
        <property name="text">
         <string>(movie save location)</string>
        </property>

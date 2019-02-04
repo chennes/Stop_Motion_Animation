@@ -8,14 +8,14 @@
 
 Waveform::Waveform(QWidget *parent) :
     QGraphicsView (parent),
-    _playheadPixels (0),
     _totalLength (0),
     _selectionStart (0),
     _selectionLength (0),
     _playheadPosition (0),
     _maxValue (0),
-    _cursorLine (NULL),
-    _playheadLine (NULL)
+    _cursorLine (nullptr),
+    _playheadLine (nullptr),
+    _playheadPixels (0)
 {
     QGraphicsView::setScene(&_scene);
     _scene.setItemIndexMethod(QGraphicsScene::NoIndex);
@@ -82,14 +82,14 @@ void Waveform::addBuffer (const QAudioBuffer &buffer)
         return;
     }
 
-    const quint16 *data = buffer.constData<quint16>();
+    const qint16 *data = buffer.constData<qint16>();
 
     qint64 startMicroseconds = buffer.startTime();
-    qreal microsecondsPerPixel = 1000.0 * (qreal)_totalLength / (qreal)this->width();
+    qreal microsecondsPerPixel = 1000.0 * qreal(_totalLength) / qreal(this->width());
     int sampleRate = buffer.format().sampleRate();
     qreal microsecondsPerSample = 1000000.0 / sampleRate;
-    qint32 startPixel = startMicroseconds / microsecondsPerPixel;
-    quint32 pixel = 0;
+    qint64 startPixel = qint64(startMicroseconds / microsecondsPerPixel);
+    quint64 pixel = 0;
 
     QVector<qreal> maxValues;
     qreal max = 0.0;
@@ -197,13 +197,13 @@ void Waveform::resizeEvent(QResizeEvent *event)
     QGraphicsView::resizeEvent (event);
 }
 
-qint64 Waveform::pixelsToMillis(int pixels) const
+qint64 Waveform::pixelsToMillis(qint64 pixels) const
 {
-    return (double)pixels / (double)_scene.width() * _totalLength;
+    return qint64(double(pixels) / double(_scene.width() * _totalLength));
 }
 
 
-int Waveform::millisToPixels (qint64 millis) const
+qint64 Waveform::millisToPixels (qint64 millis) const
 {
-    return (double) millis / (double) _totalLength * _scene.width();
+    return qint64(double(millis) / double(_totalLength * _scene.width()));
 }

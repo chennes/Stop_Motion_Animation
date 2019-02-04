@@ -1,4 +1,4 @@
-#include "MultiRegionWaveform.h"
+#include "multiregionwaveform.h"
 
 #include "utils.h"
 #include <iostream>
@@ -24,17 +24,23 @@ void MultiRegionWaveform::AddRegion (QString name, qint64 startMillis, qint64 en
     r.startMillis = startMillis;
     r.endMillis = endMillis;
     if (_totalLength > 0) {
-        r.pixelWidth = _scene.width() * (double(endMillis-startMillis)/_totalLength);
-        r.pixelStart = _scene.width() * (double(startMillis)/_totalLength);
+        r.pixelWidth = int(_scene.width() * (double(endMillis-startMillis)/_totalLength));
+        r.pixelStart = int(_scene.width() * (double(startMillis)/_totalLength));
     }
     r.penColor = color;
-    r.brushColor = QColor (color.red(), color.green(), color.blue(), 0.3 * color.alpha());
+    r.brushColor = QColor (color.red(), color.green(), color.blue(), int(0.3 * color.alpha()));
     r.pen = QPen (r.penColor);
     r.brush = QBrush (r.brushColor);
     r.rect = _scene.addRect(r.pixelStart,0,r.pixelWidth,this->height(),r.pen, r.brush);
     r.text = _scene.addText(name);
     r.text->setDefaultTextColor (r.penColor);
     r.text->setX(r.pixelStart);
+
+
+    if (_totalLength == 0) {
+        r.rect->hide();
+        r.text->hide();
+    }
 
     QList<QGraphicsItem *> groupedItems;
     groupedItems.append(r.text);
@@ -49,7 +55,7 @@ void MultiRegionWaveform::AddRegion (QString name, qint64 startMillis, qint64 en
 
     // Every time we add a new region, check to see if the new text object intersects any
     // of the others, and if it does, stagger it down
-    for (int regionId = 0; regionId < _regions.size()-1; regionId++) {
+    for (unsigned int regionId = 0; regionId < _regions.size()-1; regionId++) {
         Region &region = _regions[regionId];
         QGraphicsTextItem *t = region.text;
         QRectF checkRect = t->mapRectFromScene(t->boundingRect());
@@ -81,7 +87,7 @@ void MultiRegionWaveform::ClearRegions ()
         _scene.removeItem(_group);
     }
     _regions.clear();
-    _group = NULL;
+    _group = nullptr;
     _locked = false;
 }
 

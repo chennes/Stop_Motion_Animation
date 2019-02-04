@@ -19,19 +19,39 @@ SaveFinalMovieDialog::~SaveFinalMovieDialog()
 
 void SaveFinalMovieDialog::reset(const QString &filename, const QString &title, const QString &credits)
 {
+    Settings settings;
+
+    // Title duration
+    double titleScreenDuration = settings.Get("settings/titleScreenDuration").toDouble();
+
+    // Credits duration
+    double creditsDuration = settings.Get("settings/creditsDuration").toDouble();
+
     ui->movieSaveLocationLabel->setText(filename);
-    if (title.length() > 0) {
-        ui->movieTitleLineEdit->setText(title);
+
+    if (titleScreenDuration > 0) {
+        if (title.length() > 0) {
+            ui->movieTitleLineEdit->setText(title);
+        } else {
+            ui->movieTitleLineEdit->clear();
+            ui->movieTitleLineEdit->setPlaceholderText("Enter a title here");
+        }
     } else {
-        ui->movieTitleLineEdit->clear();
-        ui->movieTitleLineEdit->setPlaceholderText("Enter a title here");
+        ui->movieTitleLineEdit->hide();
+        ui->movieTitleLabel->hide();
     }
-    if (credits.length() > 0) {
-        ui->creditsPlainTextEdit->setPlainText(credits);
+    if (creditsDuration > 0) {
+        if (credits.length() > 0) {
+            ui->creditsPlainTextEdit->setPlainText(credits);
+        } else {
+            ui->creditsPlainTextEdit->clear();
+            ui->creditsPlainTextEdit->setPlaceholderText("Type your credits in here");
+        }
     } else {
-        ui->creditsPlainTextEdit->clear();
-        ui->creditsPlainTextEdit->setPlaceholderText("Type your credits in here");
+        ui->creditsPlainTextEdit->hide();
+        ui->creditsLabel->hide();
     }
+    adjustSize();
 }
 
 QString SaveFinalMovieDialog::filename() const

@@ -43,12 +43,12 @@ private:
     public:
 
         OutputStream () :
-            st (NULL),
-            enc(NULL),
+            st (nullptr),
+            enc(nullptr),
             next_pts(0),
             samples_count(0),
-            frame(NULL),
-            sws_ctx (NULL) {}
+            frame(nullptr),
+            sws_ctx (nullptr) {}
 
         AVStream *st;
         AVCodecContext *enc;

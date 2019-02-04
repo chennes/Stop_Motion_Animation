@@ -6,7 +6,7 @@
 class VariableSelectionWaveform : public Waveform
 {
 public:
-    VariableSelectionWaveform(QWidget *parent = NULL);
+    VariableSelectionWaveform(QWidget *parent = nullptr);
 
     virtual qint64 getSelectionLength () const;
     virtual void reset ();
@@ -24,7 +24,7 @@ protected slots:
 private:
     QGraphicsRectItem *_selectionRegion;
     bool _currentlyDragging;
-    int _dragStartX;
+    qint64 _dragStartX;
     QTime _dragStartTime;
 };
 

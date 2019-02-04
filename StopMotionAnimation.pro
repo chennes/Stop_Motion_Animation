@@ -9,6 +9,8 @@ QT       += core gui multimedia multimediawidgets widgets
 TARGET = Stop_Motion_Creator
 TEMPLATE = app
 
+CONFIG += c++17
+
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
@@ -81,7 +83,7 @@ RESOURCES += \
 
 RC_FILE = StopMotionAnimation.rc
 
-GIT_VERSION = $$system($$quote(git describe --tags))
+GIT_VERSION = $$system($$quote(git describe --long --tags))
 GIT_TIMESTAMP = $$system($$quote(git log -n 1 --format=format:"%at"))
 
 QMAKE_SUBSTITUTES += $$PWD/version.h.in

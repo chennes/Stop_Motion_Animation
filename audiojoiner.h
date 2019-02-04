@@ -49,9 +49,9 @@ private:
             in(i),
             out(o),
             volume(v),
-            ais(NULL),
-            outputs(NULL),
-            bufferSourceContext(NULL)
+            ais(nullptr),
+            outputs(nullptr),
+            bufferSourceContext(nullptr)
         {}
 
         ~AudioFile ()

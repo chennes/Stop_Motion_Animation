@@ -9,7 +9,7 @@ extern "C" {
 }
 
 AudioJoiner::AudioJoiner() :
-    QObject(NULL),
+    QObject(nullptr),
     _started (false),
     _sampleFormat (AV_SAMPLE_FMT_FLTP),
     _sampleRate (44100),
@@ -55,7 +55,7 @@ void AudioJoiner::StartStream()
     char args[512];
 
 
-    static const enum AVSampleFormat out_sample_fmts[] = { _sampleFormat, (AVSampleFormat)-1 };
+    static const enum AVSampleFormat out_sample_fmts[] = { _sampleFormat, AVSampleFormat(-1) };
     static const int64_t out_channel_layouts[] = { AV_CH_LAYOUT_STEREO, -1 };
     static const int out_sample_rates[] = { _sampleRate, -1 };
 
@@ -94,7 +94,7 @@ void AudioJoiner::StartStream()
 
         // Create the input buffer filter for this file:
         if (!codecContext->channel_layout) {
-            codecContext->channel_layout = av_get_default_channel_layout(codecContext->channels);
+            codecContext->channel_layout = uint64_t(av_get_default_channel_layout(codecContext->channels));
         }
 
         // This chunk is copied from https://ffmpeg.org/doxygen/trunk/filtering_audio_8c-example.html
@@ -105,7 +105,7 @@ void AudioJoiner::StartStream()
                  av_get_sample_fmt_name(codecContext->sample_fmt),
                  codecContext->channel_layout, codecContext->channels);
         ret = avfilter_graph_create_filter(&file.bufferSourceContext, abuffersrc, QString("bufSrc"+n).toLatin1().data(),
-                                           args, NULL, _filterGraph);
+                                           args, nullptr, _filterGraph);
         if (ret < 0) {
             throw AVException ("avfilter_graph_create_filter", ret);
         }
@@ -117,7 +117,7 @@ void AudioJoiner::StartStream()
         file.outputs->name = av_strdup(QString("in"+n).toLatin1().data());
         file.outputs->filter_ctx = file.bufferSourceContext;
         file.outputs->pad_idx    = 0;
-        file.outputs->next       = NULL;
+        file.outputs->next       = nullptr;
 
         // Construct the argument strings for each filter:
         QString trimArgs(QString ("atrim=") +
@@ -167,7 +167,7 @@ void AudioJoiner::StartStream()
 
     /* buffer audio sink: to terminate the filter chain. */
     ret = avfilter_graph_create_filter(&_bufferSinkContext, abuffersink, "out",
-                                       NULL, NULL, _filterGraph);
+                                       nullptr, nullptr, _filterGraph);
     if (ret < 0) {
         throw AVException("avfilter_graph_create_filter",ret);
     }
@@ -190,10 +190,10 @@ void AudioJoiner::StartStream()
     inputs->name       = av_strdup("mixer");
     inputs->filter_ctx = _bufferSinkContext;
     inputs->pad_idx    = 0;
-    inputs->next       = NULL;
+    inputs->next       = nullptr;
 
     ret = avfilter_graph_parse_ptr(_filterGraph, filterChain.toLatin1().data(),
-                                   &inputs, &_files[0].outputs, NULL);
+                                   &inputs, &_files[0].outputs, nullptr);
     if (ret < 0) {
         throw AVException("avfilter_graph_parse_ptr", ret);
     }
@@ -211,7 +211,7 @@ void AudioJoiner::StartStream()
         f = inputs->next;
     }
 
-    ret = avfilter_graph_config(_filterGraph, NULL);
+    ret = avfilter_graph_config(_filterGraph, nullptr);
     if (ret < 0) {
         throw AVException("avfilter_graph_config", ret);
     }
@@ -219,9 +219,9 @@ void AudioJoiner::StartStream()
 
     const AVFilterLink *outlink = _bufferSinkContext->inputs[0];
     av_get_channel_layout_string(args, sizeof(args), -1, outlink->channel_layout);
-    av_log(NULL, AV_LOG_INFO, "Filter output --> Sample rate: %dHz, Format: %s, Layout: %s\n",
-           (int)outlink->sample_rate,
-           (char *)av_x_if_null(av_get_sample_fmt_name((AVSampleFormat)outlink->format), "?"),
+    av_log(nullptr, AV_LOG_INFO, "Filter output --> Sample rate: %dHz, Format: %s, Layout: %s\n",
+           int(outlink->sample_rate),
+           static_cast<char *>(av_x_if_null(av_get_sample_fmt_name(AVSampleFormat(outlink->format)), "?")),
            args);
 
     avfilter_inout_free(&inputs);
@@ -254,7 +254,7 @@ AVFrame* AudioJoiner::GetNextFrame()
                             throw AVException("av_buffersrc_add_frame_flags",ret);
                         }
                     } else {
-                        ret2 = av_buffersrc_add_frame_flags(file.bufferSourceContext, NULL, 0);
+                        ret2 = av_buffersrc_add_frame_flags(file.bufferSourceContext, nullptr, 0);
                         if (ret2 < 0) {
                             throw AVException("av_buffersrc_add_frame_flags",ret);
                         }

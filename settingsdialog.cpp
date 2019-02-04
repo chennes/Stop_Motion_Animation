@@ -44,9 +44,9 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 
     // Resolution
     ui->resolutionCombo->addItem(QString("640 x 480 (Default)"), QVariant(QSize(640,480)));
-    //ui->resolutionCombo->addItem(QString("800 x 600"), QVariant(QSize(800,600)));
-    //ui->resolutionCombo->addItem(QString("1280 x 720 (Widescreen)"), QVariant(QSize(1280,720)));
-    //ui->resolutionCombo->addItem(QString("1920 x 1080 (Widescreen)"), QVariant(QSize(1920,1080)));
+    ui->resolutionCombo->addItem(QString("800 x 600"), QVariant(QSize(800,600)));
+    ui->resolutionCombo->addItem(QString("1280 x 720 (Widescreen)"), QVariant(QSize(1280,720)));
+    ui->resolutionCombo->addItem(QString("1920 x 1080 (Widescreen)"), QVariant(QSize(1920,1080)));
 }
 
 SettingsDialog::~SettingsDialog()

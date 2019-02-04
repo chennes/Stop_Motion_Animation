@@ -52,9 +52,9 @@ extern "C" {
  **************************************************************************/
 
 avcodecWrapper::avcodecWrapper() :
-    src_samples_data (NULL),
-    dst_samples_data (NULL),
-    frame (NULL),
+    src_samples_data (nullptr),
+    dst_samples_data (nullptr),
+    frame (nullptr),
     frame_count (0)
 {
 }
@@ -79,7 +79,7 @@ void avcodecWrapper::Encode (const QString &filename, int w, int h, int fps)
     _w = w;
     _h = h;
     _framesPerSecond = fps;
-    _streamDuration = (double)_numberOfFrames / (double)_framesPerSecond;
+    _streamDuration = double(_numberOfFrames) / double(_framesPerSecond);
 
     // Eventually move the necesary contents of wrapMain to here...
     wrapMain();
@@ -148,11 +148,11 @@ void avcodecWrapper::add_stream(OutputStream *ost, AVFormatContext *oc,
         throw libavException("Could not find encoder for '" + QString::fromUtf8(avcodec_get_name(codec_id)) + "'");
     }
 
-    ost->st = avformat_new_stream(oc, NULL);
+    ost->st = avformat_new_stream(oc, nullptr);
     if (!ost->st) {
         throw libavException("Could not allocate stream");
     }
-    ost->st->id = oc->nb_streams-1;
+    ost->st->id = int(oc->nb_streams-1);
     c = avcodec_alloc_context3(*codec);
     if (!c) {
         throw libavException("Could not allocate an encoding context");
@@ -258,7 +258,7 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
     AVCodecContext *c;
     int nb_samples;
     int ret;
-    AVDictionary *opt = NULL;
+    AVDictionary *opt = nullptr;
 
     c = ost->enc;
 
@@ -293,14 +293,17 @@ void avcodecWrapper::open_audio(AVFormatContext *, AVCodec *codec, OutputStream 
 int avcodecWrapper::write_audio_frame(AVFormatContext *oc, OutputStream *ost)
 {
     AVCodecContext *c;
-    AVPacket pkt = { 0 }; // data and size must be 0;
+    AVPacket pkt; // data and size must be 0;
+    pkt.data = nullptr;
+    pkt.size = 0;
+    pkt.buf = nullptr;
     int ret;
     int got_packet = 0;
 
     av_init_packet(&pkt);
     c = ost->enc;
 
-    _audioJoiner.SetFrameSize (ost->enc->frame_size);
+    _audioJoiner.SetFrameSize (static_cast<unsigned int>(ost->enc->frame_size));
     ret = av_frame_make_writable(ost->frame);
     ost->frame = _audioJoiner.GetNextFrame(); // This will always return a frame, even if it is silent
     ost->next_pts += ost->frame->nb_samples;
@@ -343,7 +346,7 @@ AVFrame *avcodecWrapper::alloc_picture(enum AVPixelFormat pix_fmt)
 
     picture = av_frame_alloc();
     if (!picture)
-        return NULL;
+        return nullptr;
 
     picture->format = pix_fmt;
     picture->width  = _w;
@@ -362,7 +365,7 @@ void avcodecWrapper::open_video(AVFormatContext *, AVCodec *codec, OutputStream 
 {
     int ret;
     AVCodecContext *c = ost->enc;
-    AVDictionary *opt = NULL;
+    AVDictionary *opt = nullptr;
 
     av_dict_copy(&opt, opt_arg, 0);
 
@@ -374,7 +377,7 @@ void avcodecWrapper::open_video(AVFormatContext *, AVCodec *codec, OutputStream 
     }
 
     /* allocate and init a re-usable frame */
-    ost->frame = NULL;
+    ost->frame = nullptr;
     //ost->frame = alloc_picture(c->pix_fmt);
     //if (!ost->frame) {
     //    throw libavException("Could not allocate video frame");
@@ -391,13 +394,13 @@ void avcodecWrapper::open_video(AVFormatContext *, AVCodec *codec, OutputStream 
 void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
 {
     AVFormatContext *fc = avformat_alloc_context();
-    AVDictionary *opt = NULL;
+    AVDictionary *opt = nullptr;
     QByteArray filenameBytes = _videoFrames.at(frame_index).toLatin1();
     const char *filename = filenameBytes.data();
 
     int ret;
     //std::cout << "Trying to load frame " << frame_index << ": " << filename << std::endl;
-    ret = avformat_open_input (&fc, filename, NULL, &opt);
+    ret = avformat_open_input (&fc, filename, nullptr, &opt);
     if (ret < 0) {
         throw libavException("Error reading the video frame file:" + avErrorToQString(ret));
     }
@@ -421,6 +424,8 @@ void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
     int frameFinished;
 
     AVPacket packet;
+    packet.data = nullptr;
+    packet.size = 0;
     av_init_packet(&packet);
     while (av_read_frame(fc, &packet) >= 0) {
         if(packet.stream_index != 0) {
@@ -448,7 +453,7 @@ void avcodecWrapper::fill_yuv_image(AVFrame *pict, int frame_index)
 //{
 //    /* check if we want to generate more frames */
 //    if (ost->next_pts >= _numberOfFrames) {
-//        return NULL;
+//        return nullptr;
 //    }
 
 //    /* when we pass a frame to the encoder, it may keep a reference to it
@@ -473,30 +478,32 @@ AVFrame *avcodecWrapper::get_video_frame(OutputStream *ost)
 {
     /* check if we want to generate more frames */
     if (ost->next_pts >= _numberOfFrames) {
-        return NULL;
+        return nullptr;
     }
 
-    AVInputFormat *iformat = NULL;
-    AVFormatContext *format_ctx = NULL;
+    AVInputFormat *iformat = nullptr;
+    AVFormatContext *format_ctx = nullptr;
     AVCodec *codec;
     AVCodecContext *codec_ctx;
     AVFrame *frame;
     int frame_decoded, ret = 0;
     AVPacket pkt;
-    AVDictionary *opt=NULL;
+    pkt.data = nullptr;
+    pkt.size = 0;
+    AVDictionary *opt=nullptr;
 
-    QByteArray filenameBytes = _videoFrames.at(ost->next_pts).toLatin1();
+    QByteArray filenameBytes = _videoFrames.at(int(ost->next_pts)).toLatin1();
     const char *filename = filenameBytes.data();
 
     av_init_packet(&pkt);
 
     iformat = av_find_input_format("image2pipe");
-    if ((ret = avformat_open_input(&format_ctx, filename, iformat, NULL)) < 0) {
-        return NULL;
+    if ((ret = avformat_open_input(&format_ctx, filename, iformat, nullptr)) < 0) {
+        return nullptr;
     }
 
-    if ((ret = avformat_find_stream_info(format_ctx, NULL)) < 0) {
-        return NULL;
+    if ((ret = avformat_find_stream_info(format_ctx, nullptr)) < 0) {
+        return nullptr;
     }
 
     codec_ctx = format_ctx->streams[0]->codec;
@@ -504,21 +511,21 @@ AVFrame *avcodecWrapper::get_video_frame(OutputStream *ost)
 
     av_dict_set(&opt, "thread_type", "slice", 0);
     if ((ret = avcodec_open2(codec_ctx, codec, &opt)) < 0) {
-        return NULL;
+        return nullptr;
     }
 
     if (!(frame = av_frame_alloc()) ) {
-        return NULL;
+        return nullptr;
     }
 
     ret = av_read_frame(format_ctx, &pkt);
     if (ret < 0) {
-        return NULL;
+        return nullptr;
     }
 
     ret = avcodec_decode_video2(codec_ctx, frame, &frame_decoded, &pkt);
     if (ret < 0 || !frame_decoded) {
-        return NULL;
+        return nullptr;
     }
 
     // Unref the old frame:
@@ -549,7 +556,10 @@ int avcodecWrapper::write_video_frame(AVFormatContext *oc, OutputStream *ost)
     AVCodecContext *c;
     AVFrame *frame;
     int got_packet = 0;
-    AVPacket pkt = { 0 };
+    AVPacket pkt;
+    pkt.data = nullptr;
+    pkt.size = 0;
+    pkt.buf = nullptr;
 
     c = ost->enc;
 
@@ -595,19 +605,19 @@ void avcodecWrapper::close_stream(AVFormatContext *, OutputStream *ost)
 void avcodecWrapper::wrapMain()
 {
     OutputStream video_st, audio_st;
-    AVOutputFormat *fmt;
-    AVFormatContext *oc;
-    AVCodec *audio_codec, *video_codec;
+    AVOutputFormat *fmt{nullptr};
+    AVFormatContext *oc{nullptr};
+    AVCodec *audio_codec {nullptr}, *video_codec{nullptr};
     int ret;
     int have_video = 0, have_audio = 0;
     int encode_video = 0, encode_audio = 0;
-    AVDictionary *opt = NULL;
+    AVDictionary *opt = nullptr;
 
     /* Initialize libavcodec, and register all codecs and formats. */
     av_register_all();
 
     /* allocate the output media context */
-    avformat_alloc_output_context2(&oc, NULL, NULL, _outputFilename.toUtf8().data());
+    avformat_alloc_output_context2(&oc, nullptr, nullptr, _outputFilename.toUtf8().data());
     if (!oc) {
         throw libavException("Could not deduce file type from filename: " + _outputFilename);
     }

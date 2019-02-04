@@ -10,7 +10,7 @@ SoundEffect::SoundEffect(const QString &filename):
     _startFrame(0),
     _in(0.0),
     _out(0.0),
-    _volume(100),
+    _volume(100.0),
     _playbackEnabled (false),
     _isPlaying (false)
 {
@@ -107,7 +107,7 @@ void SoundEffect::setVolume (double v)
 {
     _volume = v;
     if (_playbackEnabled) {
-        _playback->setVolume(_volume);
+        _playback->setVolume(static_cast<int>(_volume));
     }
 }
 
@@ -122,7 +122,7 @@ double SoundEffect::getStartTime () const
 {
     Settings settings;
     int fps = settings.Get ("settings/framesPerSecond").toInt();
-    return (double)_startFrame / (double)fps;
+    return static_cast<double>(_startFrame) / static_cast<double>(fps);
 }
 
 int SoundEffect::getStartFrame() const
@@ -189,8 +189,8 @@ void SoundEffect::playFrom (double t) const
     }
     if (_out > _in || _out == 0.0) {
         _isPlaying = true;
-        _playback->setPosition(1000 * (t+_in));
-        _playback->setVolume(_volume);
+        _playback->setPosition(static_cast<int>(1000 * (t+_in)));
+        _playback->setVolume(static_cast<int>(_volume));
         _playback->play();
         if (_out != 0.0) {
             QTimer::singleShot (int(1000*(_out-_in)), this, SLOT(stop()));
@@ -214,8 +214,8 @@ void SoundEffect::load (const QJsonObject &json)
     _in = json["in"].toDouble();
     _out = json["out"].toDouble();
     _volume = json["volume"].toDouble();
-    if (_volume == 0) {
-        _volume = 1;
+    if (_volume == 0.0) {
+        _volume = 100.0;
     }
 
     if (_filename.length() > 0 && _playbackEnabled) {

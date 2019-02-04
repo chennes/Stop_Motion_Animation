@@ -11,8 +11,8 @@ MovieFrameSlider::MovieFrameSlider(QWidget *parent) :
 void MovieFrameSlider::mousePressEvent(QMouseEvent *ev)
 {
     // Figure out what frame this corresponds to, then set the value
-    double percentageLocation = (double)ev->x() / (double)this->width();
-    int frame = round(this->minimum() + percentageLocation * (this->maximum() - this->minimum()));
+    double percentageLocation {double(ev->x()) / double(this->width())};
+    int frame {int(round(this->minimum() + percentageLocation * (this->maximum() - this->minimum())))};
     setValue (frame);
 }
 
@@ -20,8 +20,8 @@ void MovieFrameSlider::mousePressEvent(QMouseEvent *ev)
 void MovieFrameSlider::mouseMoveEvent(QMouseEvent *ev)
 {
     // Figure out what frame this corresponds to, then set the value
-    double percentageLocation = (double)ev->x() / (double)this->width();
-    int frame = round(this->minimum() + percentageLocation * (this->maximum() - this->minimum()));
+    double percentageLocation {double(ev->x()) / double(this->width())};
+    int frame {int(round(this->minimum() + percentageLocation * (this->maximum() - this->minimum())))};
     setValue (frame);
 }
 
@@ -29,7 +29,7 @@ void MovieFrameSlider::mouseMoveEvent(QMouseEvent *ev)
 void MovieFrameSlider::mouseReleaseEvent(QMouseEvent *ev)
 {
     // Figure out what frame this corresponds to, then set the value
-    double percentageLocation = (double)ev->x() / (double)this->width();
-    int frame = round(this->minimum() + percentageLocation * (this->maximum() - this->minimum()));
+    double percentageLocation {double(ev->x()) / double(this->width())};
+    int frame {int(round(this->minimum() + percentageLocation * (this->maximum() - this->minimum())))};
     setValue (frame);
 }
