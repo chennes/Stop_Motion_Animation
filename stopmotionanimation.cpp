@@ -17,21 +17,16 @@
 StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::StopMotionAnimation),
-    _camera(NULL),
-    _viewfinder(NULL),
-    _cameraMonitor (NULL),
-    _keydownState (KeydownState::NONE),
-    _backgroundMusic (SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
-    _soundEffects (SoundSelectionDialog::Mode::SOUND_EFFECT, this)
+    _camera(nullptr),
+    _videoItem(nullptr),
+    _graphicsView(nullptr),
+    _graphicsScene(nullptr),
+    _cameraMonitor(nullptr),
+    _keydownState(KeydownState::NONE),
+    _backgroundMusic(SoundSelectionDialog::Mode::BACKGROUND_MUSIC, this),
+    _soundEffects(SoundSelectionDialog::Mode::SOUND_EFFECT, this)
 {
     ui->setupUi(this);
-
-    _viewfinder = new QCameraViewfinder(this);
-    _viewfinder->setBaseSize(640, 480);
-    _viewfinder->setMinimumSize(640,480);
-    _viewfinder->setMaximumSize(640,480);
-    ui->videoRegionLayout->insertWidget(2,_viewfinder); // After the spacer and still image widgets
-    _viewfinder->hide();
 
     this->setWindowTitle(QCoreApplication::applicationName() + " -- v" + APP_VERSION + "-" + APP_REVISION);
     connect (&this->_saveFinalMovie, &SaveFinalMovieDialog::accepted, this, &StopMotionAnimation::saveFinalMovieAccepted);
@@ -39,17 +34,35 @@ StopMotionAnimation::StopMotionAnimation(QWidget *parent) :
     int w = settings.Get("settings/imageWidth").toInt();
     int h = settings.Get("settings/imageHeight").toInt();
     QSize resolution (w,h);
-    _viewFinderSettings.setResolution(resolution);
+
+    _videoItem = new QGraphicsVideoItem;
+    _videoItem->setSize(QSize{w,h});
+    _graphicsScene = new QGraphicsScene (this);
+    _graphicsView = new QGraphicsView (_graphicsScene);
+    _graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    _graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    _graphicsScene->addItem(_videoItem);
+    connect (_videoItem, &QGraphicsVideoItem::nativeSizeChanged, this, &StopMotionAnimation::frameSizeChanged);
+
+    ui->videoRegionLayout->insertWidget(2,_graphicsView);
+    _graphicsView->hide();
+    _videoItem->show();
+
+    _overlayEffect = new PreviousFrameOverlayEffect();
+    _videoItem->setGraphicsEffect(_overlayEffect);
+    _overlayEffect->setEnabled(false);
+
+    _loadingMessage = std::unique_ptr<QMessageBox>(new QMessageBox(QMessageBox::Information, "Loading", "Connecting to your camera, just a moment...", QMessageBox::Ok));
+    _loadingMessage->show();
+    QApplication::processEvents();
+
     startNewMovie();
     adjustSize();
-    _overlayEffect = new PreviousFrameOverlayEffect();
-    _viewfinder->setGraphicsEffect(_overlayEffect);
-    _overlayEffect->setEnabled(false);
 
     // Grab the x, z, and spacebar keys from everything that might conceivably get them:
     ui->addToPreviousButton->installEventFilter(this);
     ui->backgroundMusicButton->installEventFilter(this);
-    _viewfinder->installEventFilter(this);
+    _videoItem->installEventFilter(this);
     ui->createFinalMovieButton->installEventFilter(this);
     ui->deletePhotoButton->installEventFilter(this);
     ui->helpButton->installEventFilter(this);
@@ -97,8 +110,7 @@ StopMotionAnimation::~StopMotionAnimation()
 
 void StopMotionAnimation::on_startNewMovieButton_clicked()
 {
-    std::unique_ptr<QMessageBox> message (new QMessageBox(QMessageBox::Information, "Loading", "Connecting to your camera, just a moment...", QMessageBox::Ok));
-    message->show();
+    _loadingMessage->show();
     QApplication::processEvents();
     startNewMovie ();
 }
@@ -127,13 +139,13 @@ void StopMotionAnimation::startNewMovie ()
     }
     if (_camera) {
         delete _camera;
-        _camera = NULL;
+        _camera = nullptr;
     }
     if (_cameraMonitor) {
         _cameraMonitor->requestInterruption();
         _cameraMonitor->wait(1000);
         delete _cameraMonitor;
-        _cameraMonitor = NULL;
+        _cameraMonitor = nullptr;
     }
     _movie = std::unique_ptr<Movie> (new Movie (timestamp));
     connect (_movie.get(), &Movie::frameChanged,
@@ -141,10 +153,16 @@ void StopMotionAnimation::startNewMovie ()
 
     auto cameras = QCameraInfo::availableCameras();
     auto requestedCamera = settings.Get("settings/camera").toString();
+    auto w = settings.Get("settings/imageWidth").toInt();
+    auto h = settings.Get("settings/imageHeight").toInt();
+    ui->videoLabel->setBaseSize(w,h);
+    ui->videoLabel->setMinimumSize(w,h);
+    ui->videoLabel->setMaximumSize(w,h);    
+    _videoItem->setSize(QSize{w,h});
 
     if (!cameras.empty()) {
 
-        _camera = NULL;
+        _camera = nullptr;
         for (auto camera: cameras) {
             if (camera.description() == requestedCamera) {
                 _camera = new QCamera(camera);
@@ -156,32 +174,61 @@ void StopMotionAnimation::startNewMovie ()
             _camera = new QCamera(cameras.back());
             _cameraInfo = cameras.back();
         }
-        _cameraMonitor = new CameraMonitor (this, _cameraInfo);
-        connect (_cameraMonitor, &CameraMonitor::cameraLost, this, &StopMotionAnimation::cameraLost);
-        connect (_cameraMonitor, &CameraMonitor::finished, _cameraMonitor, &QObject::deleteLater);
-        _camera->setViewfinder (_viewfinder);
-        _camera->setViewfinderSettings(_viewFinderSettings);
+
+        connect (_camera, &QCamera::statusChanged, this, &StopMotionAnimation::cameraStatusChanged);
         _camera->setCaptureMode(QCamera::CaptureStillImage);
+        _camera->setViewfinder (_videoItem);
         _camera->start();
-        _cameraMonitor->start();
     } else {
         // This should display an error of some kind...
         ui->videoLabel->setText("<big><b>ERROR:</b> No camera found. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
-        _viewfinder->hide();
+        _graphicsView->hide();
         ui->videoLabel->show();
+        _loadingMessage->hide();
     }
 
-    setState (State::LIVE);
     updateInterfaceForNewFrame();
     adjustSize();
     updateSoundEffectLabel();
+}
+
+void StopMotionAnimation::cameraStatusChanged(QCamera::Status status)
+{
+    switch(status) {
+        case QCamera::UnavailableStatus: [[fallthrough]];
+        case QCamera::UnloadedStatus:    [[fallthrough]];
+        case QCamera::LoadingStatus:     [[fallthrough]];
+        case QCamera::UnloadingStatus:   [[fallthrough]];
+        case QCamera::LoadedStatus:      [[fallthrough]];
+        case QCamera::StandbyStatus:     [[fallthrough]];
+        case QCamera::StartingStatus:    [[fallthrough]];
+        case QCamera::StoppingStatus:
+            qDebug() << "Camera status changed to " << status;
+            break;
+        case QCamera::ActiveStatus:
+            QTimer::singleShot(200, this, &StopMotionAnimation::setUpActiveCamera);
+            break;
+    }
+}
+
+void StopMotionAnimation::setUpActiveCamera()
+{
+    _cameraMonitor = new CameraMonitor (this, _cameraInfo);
+    connect (_cameraMonitor, &CameraMonitor::cameraLost, this, &StopMotionAnimation::cameraLost);
+    connect (_cameraMonitor, &CameraMonitor::finished, _cameraMonitor, &QObject::deleteLater);
+    _videoItem->show();
+    _graphicsView->show();
+    _cameraMonitor->start();
+    setState (State::LIVE);
+    _loadingMessage->hide();
+    _movie->setCamera(_camera);
 }
 
 void StopMotionAnimation::cameraLost ()
 {
     if (_camera) {
         delete _camera;
-        _camera = NULL;
+        _camera = nullptr;
         ui->videoLabel->setText("<big><b>ERROR:</b> Camera disconnected. Plug in a camera and press the <kbd>Save and Start a New Movie</kbd> button.</big>");
         setState (State::LIVE);
         updateInterfaceForNewFrame();
@@ -189,7 +236,12 @@ void StopMotionAnimation::cameraLost ()
     _cameraMonitor->requestInterruption();
     _cameraMonitor->wait(1000);
     delete _cameraMonitor;
-    _cameraMonitor = NULL;
+    _cameraMonitor = nullptr;
+}
+
+void StopMotionAnimation::frameSizeChanged(const QSizeF &size)
+{
+    _graphicsView->fitInView(QRectF(0,0,size.width(),size.height()));
 }
 
 void StopMotionAnimation::on_addToPreviousButton_clicked()
@@ -284,10 +336,18 @@ void StopMotionAnimation::on_importButton_clicked()
 void StopMotionAnimation::on_settingButton_clicked()
 {
     // Launch the settings dialog
+    int ret = QMessageBox::warning(this, tr("Show settings?"),
+                                   tr("This will automatically save and start a new movie.\n"
+                                      "Do you want to continue?"),
+                                   QMessageBox::Yes | QMessageBox::No);
+    if (ret == QMessageBox::No) {
+        return;
+    }
     _settings.load();
     auto result = _settings.exec();
     if (result == QDialog::Accepted) {
         _settings.store();
+        on_startNewMovieButton_clicked();
     }
 }
 
@@ -302,13 +362,13 @@ void StopMotionAnimation::on_takePhotoButton_clicked()
     if (_state == State::LIVE && _camera) {
 
         // Get the frame out of the camera:
-        _movie->addFrame (_camera);
+        _movie->addFrame (ui->rotate180Checkbox->isChecked());
 
         // Update the overlay effect:
         try {
             _overlayEffect->setPreviousFrame(_movie->getMostRecentFrame());
         } catch (PreviousFrameOverlayEffect::LoadFailedException &e) {
-            //_errorDialog.showMessage("Failed to load the previous frame into the overlay layer.");
+            _errorDialog.showMessage("Failed to load the previous frame into the overlay layer.");
             _errorDialog.showMessage(e.message());
         }
 
@@ -326,7 +386,7 @@ void StopMotionAnimation::on_backgroundMusicButton_clicked()
 {
     Settings settings;
     qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
-    _backgroundMusic.setMovieDuration((double)_movie->getNumberOfFrames() / (double)framesPerSecond);
+    _backgroundMusic.setMovieDuration(double(_movie->getNumberOfFrames()) / double(framesPerSecond));
     _backgroundMusic.setSound (_movie->getBackgroundMusic());
     _backgroundMusic.show();
 }
@@ -375,7 +435,7 @@ void StopMotionAnimation::on_playButton_clicked()
 
 void StopMotionAnimation::movieFrameSliderValueChanged(int value)
 {
-    if (value > (int)_movie->getNumberOfFrames()) {
+    if (value > int(_movie->getNumberOfFrames())) {
         setState (State::LIVE);
     } else {
         if (_state != State::PLAYBACK) {
@@ -385,7 +445,7 @@ void StopMotionAnimation::movieFrameSliderValueChanged(int value)
     }
 }
 
-void StopMotionAnimation::movieFrameChanged (unsigned int newFrame)
+void StopMotionAnimation::movieFrameChanged (int newFrame)
 {
     SoundEffect sfx;
     switch (_state) {
@@ -400,7 +460,7 @@ void StopMotionAnimation::movieFrameChanged (unsigned int newFrame)
         } else {
             ui->soundEffectButton->setText("Add sound effect...");
         }
-        // Fall through...
+        [[fallthrough]];
 
     case State::PLAYBACK:
         ui->frameNumberLabel->setText (QString::number(newFrame+1));
@@ -417,11 +477,11 @@ void StopMotionAnimation::setState (State newState)
     case State::LIVE:
         if (_camera) {
             ui->videoLabel->hide();
-            _viewfinder->show();
+            _graphicsView->show();
             ui->takePhotoButton->setDefault(true);
             ui->takePhotoButton->setEnabled(true);
         } else {
-            _viewfinder->hide();
+            _graphicsView->hide();
             ui->videoLabel->show();
             ui->takePhotoButton->setDefault(false);
             ui->takePhotoButton->setEnabled(false);
@@ -434,7 +494,7 @@ void StopMotionAnimation::setState (State newState)
     case State::PLAYBACK:
         ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Stop");
-        _viewfinder->hide();
+        _graphicsView->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
         ui->takePhotoButton->setEnabled(false);
@@ -443,15 +503,13 @@ void StopMotionAnimation::setState (State newState)
     case State::STILL:
         ui->frameNumberLabel->setText(QString::number(ui->horizontalSlider->value()));
         ui->playButton->setText("Play");
-        _viewfinder->hide();
+        _graphicsView->hide();
         ui->videoLabel->show();
         ui->playButton->setDefault(true);
         ui->takePhotoButton->setEnabled(false);
         ui->soundEffectButton->setEnabled(true);
         break;
     }
-    qDebug() << "Video label: " << ui->videoLabel->isVisible();
-    qDebug() << "Viewfinder:  " << _viewfinder->isVisible();
 }
 
 
@@ -465,11 +523,11 @@ void StopMotionAnimation::updateInterfaceForNewFrame()
 
     Settings settings;
     qint32 framesPerSecond = settings.Get("settings/framesPerSecond").toInt();
-    double movieLength = (double)numberOfFrames / (double)framesPerSecond;
+    double movieLength = double(numberOfFrames) / double(framesPerSecond);
     if (movieLength < 60) {
-        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(movieLength*1000).toString("s.zzz") + " seconds");
+        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(int(movieLength*1000)).toString("s.zzz") + " seconds");
     } else {
-        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(movieLength*1000).toString("m:ss.zzz"));
+        ui->movieLengthLabel->setText(QTime(0,0,0,0).addMSecs(int(movieLength*1000)).toString("m:ss.zzz"));
     }
 
     if (numberOfFrames > 0) {
@@ -599,4 +657,16 @@ void StopMotionAnimation::updateSoundEffectLabel()
     QString numSFX = QString::number(_movie->getSoundEffects().length());
     newLabelText = QString("<html><body><p align=\"center\"><a href=\"#\">") + numSFX + QString (" of ") + QString::number(MAX_SOUND_EFFECTS) + QString(" sounds</a></p></body></html>");
     ui->soundEffectNumberLabel->setText(newLabelText);
+}
+
+void StopMotionAnimation::on_rotate180Checkbox_stateChanged(int)
+{
+    bool rotate = ui->rotate180Checkbox->isChecked();
+    if (rotate) {
+        _videoItem->setTransform(QTransform().rotate(180));
+        _graphicsView->fitInView(_videoItem);
+    } else {
+        _videoItem->setTransform(QTransform().rotate(0));
+        _graphicsView->fitInView(_videoItem);
+    }
 }

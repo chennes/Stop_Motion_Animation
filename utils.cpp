@@ -39,6 +39,7 @@
 ****************************************************************************/
 
 #include <QAudioFormat>
+#include <QImage>
 #include "utils.h"
 
 qint64 audioDuration(const QAudioFormat &format, qint64 bytes)
@@ -134,5 +135,14 @@ qreal pcmToReal(qint16 pcm)
 
 qint16 realToPcm(qreal real)
 {
-    return real * PCMS16MaxValue;
+    return static_cast<qint16>(real * PCMS16MaxValue);
+}
+
+void rotateImageFile(QString filename)
+{
+    QImage i (filename);
+    if (!i.isNull()) {
+        auto iRotated = i.transformed(QTransform().rotate(180));
+        iRotated.save(filename);
+    }
 }

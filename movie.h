@@ -38,9 +38,11 @@ public:
 
     QString getSaveFilename () const;
 
-    void addFrame (QCamera *camera);
+    void setCamera (QCamera *camera);
 
-    void Movie::importFrame (const QString &filename);
+    void addFrame (bool rotate180 = false);
+
+    void importFrame (const QString &filename);
 
     int getNumberOfFrames () const;
 
@@ -93,6 +95,10 @@ protected slots:
 
     void nextFrame ();
 
+    void readyForCaptureChanged (bool ready);
+
+    void imageSaved (int id, const QString &fileName);
+
 protected:
 
     QString getBaseFilename () const;
@@ -119,6 +125,7 @@ private:
     QImageEncoderSettings _encoderSettings;
     std::unique_ptr<QCameraImageCapture> _imageCapture;
     mutable QStringList _encodingTempFiles;
+    QString _fileForRotation;
 
     // For playback
     bool _currentlyPlaying;

@@ -9,6 +9,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
 #include <QPainter>
+#include <QtConcurrent/QtConcurrent>
 #include <iomanip>
 #include <thread>
 #include <fstream>
@@ -18,13 +19,14 @@
 #include "avcodecwrapper.h"
 #include "plsexception.h"
 #include "settings.h"
+#include "utils.h"
 
 Movie::Movie(const QString &name, bool allowModifications) :
     _name (name),
     _numberOfFrames (0),
+    _allowModifications (allowModifications),
     _currentlyPlaying (false),
     _currentFrame (-1),
-    _allowModifications (allowModifications),
     _skippedFrameCounter(0),
     _computerSpeedAdjust (0),
     _mute (false)
@@ -108,12 +110,8 @@ QString Movie::getEncodingCredits() const
     return _encodingCredits;
 }
 
-
-void Movie::addFrame (QCamera *camera)
+void Movie::setCamera (QCamera *camera)
 {
-    if (!_allowModifications) {
-        throw NoChangesNowException ("Cannot add frame to movie when it is locked");
-    }
     if (camera != _camera) {
         _camera = camera;
         _imageCapture = std::unique_ptr<QCameraImageCapture> (new QCameraImageCapture(camera));
@@ -121,15 +119,49 @@ void Movie::addFrame (QCamera *camera)
         if (_imageCapture->error() != QCameraImageCapture::NoError) {
             throw CaptureFailedException ("Image capture failed: " + _imageCapture->errorString());
         }
+        connect (_imageCapture.get(), &QCameraImageCapture::readyForCaptureChanged,
+                 this, &Movie::readyForCaptureChanged);
+        connect (_imageCapture.get(), &QCameraImageCapture::imageSaved,
+                 this, &Movie::imageSaved);
+    }
+}
+
+void Movie::readyForCaptureChanged(bool)
+{
+}
+
+void Movie::imageSaved (int, const QString &fileName)
+{
+    if (_fileForRotation.length() > 0 &&
+        _fileForRotation == fileName) {
+        // Fire off a process to rotate the image in the background.
+        QtConcurrent::run(&rotateImageFile,_fileForRotation);
+        _fileForRotation = "";
+    }
+}
+
+
+void Movie::addFrame (bool rotate180)
+{
+    if (!_allowModifications) {
+        throw NoChangesNowException ("Cannot add frame to movie when it is locked");
     }
     QString filename = getImageFilename (_numberOfFrames);
     if (_imageCapture->isReadyForCapture()) {
         _imageCapture->capture (filename);
+        if (rotate180) {
+            _fileForRotation = filename;
+        } else {
+            _fileForRotation = "";
+        }
         if (_imageCapture->error() != QCameraImageCapture::NoError) {
             throw CaptureFailedException ("Image capture failed: " + _imageCapture->errorString());
         }
         _numberOfFrames++;
         save();
+    } else {
+        // Not ready for capture?
+        qDebug() << "Not ready to capture!";
     }
 }
 
@@ -217,7 +249,7 @@ void Movie::play (qint32 startFrame, QLabel *video)
         Settings settings;
         double tOffset = settings.Get("settings/preTitleScreenDuration").toDouble() +
                          settings.Get("settings/titleScreenDuration").toDouble();
-        double startTime = tOffset + (double)startFrame / (double)_framesPerSecond ;
+        double startTime = tOffset + double(startFrame) / double(_framesPerSecond);
         _backgroundMusic.playFrom(startTime);
     }
     int interval = (1000 / _framesPerSecond) - _computerSpeedAdjust;
@@ -229,12 +261,12 @@ void Movie::play (qint32 startFrame, QLabel *video)
 void Movie::nextFrame ()
 {
     if (_currentlyPlaying && _frameDestination) {
-        int frameAdjust = 0;
+        int frameAdjust { 0 };
 
         _playFrameCounter++;
-        int elapsedPlayTime = _playStartTime.elapsed();
-        double millisPerFrame = 1000.0 / _framesPerSecond;
-        int expectedMillis = round(_playFrameCounter * millisPerFrame);
+        int elapsedPlayTime {_playStartTime.elapsed()};
+        double millisPerFrame {1000.0 / _framesPerSecond};
+        int expectedMillis {int(round(_playFrameCounter * millisPerFrame))};
 
         // If we have to, we can drop frames to catch up.
         if (expectedMillis < elapsedPlayTime-millisPerFrame) {
@@ -277,9 +309,9 @@ void Movie::stop ()
     }
     qDebug() << "Skipped " << _skippedFrameCounter << " frames in that run.";
 
-    int elapsedPlayTime = _playStartTime.elapsed();
-    double millisPerFrame = 1000.0 / _framesPerSecond;
-    int expectedMillis = round((_playFrameCounter-_skippedFrameCounter) * millisPerFrame);
+    int elapsedPlayTime {_playStartTime.elapsed()};
+    double millisPerFrame {1000.0 / _framesPerSecond};
+    int expectedMillis {int(round((_playFrameCounter-_skippedFrameCounter) * millisPerFrame))};
 
     // Tweak the playback timer speed to adjust for the computer's speed.
     if (elapsedPlayTime > expectedMillis + millisPerFrame) {
@@ -551,7 +583,7 @@ void Movie::CreateTitle(avcodecWrapper &encoder, const QString &title) const
         scene.setBackgroundBrush(Qt::black);
         QFont titleFont;
         titleFont.setBold(true);
-        titleFont.setPixelSize (int(0.08 * (double)resolution.height()));
+        titleFont.setPixelSize (int(0.08 * double(resolution.height())));
         QGraphicsTextItem *titleTextItem = scene.addText ("title", titleFont);
         titleTextItem->setHtml("<center>" + title + "</center>");
         titleTextItem->setDefaultTextColor(Qt::white);
@@ -588,7 +620,7 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
         scene.setSceneRect(0,0,w,h);
         scene.setBackgroundBrush(Qt::black);
         QFont creditsFont;
-        creditsFont.setPixelSize (int(0.05 * (double)h));
+        creditsFont.setPixelSize (int(0.05 * double(h)));
 
         QGraphicsTextItem *titleTextItem = scene.addText ("", creditsFont);
 
@@ -611,7 +643,7 @@ void Movie::CreateCredits(avcodecWrapper &encoder, const QString &credits) const
         // See if we need to scroll the credits:
         qreal distancePerFrame = 0;
         if (textSize.height() > h) {
-            distancePerFrame = qreal(textSize.height() - h) / (qreal)(numberOfFrames-(2*numberOfStillFrames));
+            distancePerFrame = qreal(textSize.height() - h) / qreal(numberOfFrames-(2*numberOfStillFrames));
         }
 
         qreal verticalPosition = 0;

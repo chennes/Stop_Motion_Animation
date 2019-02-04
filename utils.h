@@ -69,6 +69,8 @@ bool isPCM(const QAudioFormat &format);
 // Check whether the audio format is signed, little-endian, 16-bit PCM
 bool isPCMS16LE(const QAudioFormat &format);
 
+void rotateImageFile(QString filename);
+
 // Compile-time calculation of powers of two
 
 template<int N> class PowerOfTwo

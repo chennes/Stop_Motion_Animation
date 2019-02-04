@@ -5,7 +5,10 @@
 #include <QErrorMessage>
 #include <QtMultimedia/QCamera>
 #include <QtMultimedia/QCameraInfo>
-#include <QCameraViewfinder>
+#include <QGraphicsVideoItem>
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QMessageBox>
 #include "movie.h"
 #include "soundeffect.h"
 #include "helpdialog.h"
@@ -26,7 +29,7 @@ class StopMotionAnimation : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit StopMotionAnimation(QWidget *parent = 0);
+    explicit StopMotionAnimation(QWidget *parent = nullptr);
     ~StopMotionAnimation();
 
     void startNewMovie ();
@@ -36,9 +39,15 @@ private slots:
 
     void on_addToPreviousButton_clicked();
 
+    void cameraStatusChanged(QCamera::Status status);
+
     void cameraLost ();
 
+    void setUpActiveCamera();
+
     void addToPrevious ();
+
+    void frameSizeChanged (const QSizeF & size);
 
     void on_createFinalMovieButton_clicked();
 
@@ -60,7 +69,7 @@ private slots:
 
     void movieFrameSliderValueChanged(int value);
 
-    void movieFrameChanged (unsigned int newFrame);
+    void movieFrameChanged (int newFrame);
 
     void saveFinalMovieAccepted();
 
@@ -82,6 +91,8 @@ private slots:
 
     void updateSoundEffectLabel ();
 
+    void on_rotate180Checkbox_stateChanged(int arg1);
+
 private:
     Ui::StopMotionAnimation *ui;
 
@@ -97,12 +108,13 @@ protected:
 
 
 private:
-    static const int MAX_SOUND_EFFECTS = 25;
+    static constexpr int MAX_SOUND_EFFECTS = 25;
     QCamera *_camera;
-    QCameraViewfinder *_viewfinder;
+    QGraphicsVideoItem *_videoItem;
+    QGraphicsView *_graphicsView;
+    QGraphicsScene *_graphicsScene;
     QCameraInfo _cameraInfo;
     CameraMonitor *_cameraMonitor;
-    QCameraViewfinderSettings _viewFinderSettings;
     QErrorMessage _errorDialog;
     std::unique_ptr<Movie> _movie;
     State _state;
@@ -117,6 +129,7 @@ private:
     SaveFinalMovieDialog _saveFinalMovie;
     AddToPreviousMovieDialog _addToPrevious;
     SoundEffectListDialog _sfxListDialog;
+    std::unique_ptr<QMessageBox> _loadingMessage;
 
 };
 
