@@ -206,13 +206,19 @@ void StopMotionAnimation::cameraStatusChanged(QCamera::Status status)
             qDebug() << "Camera status changed to " << status;
             break;
         case QCamera::ActiveStatus:
-            QTimer::singleShot(200, this, &StopMotionAnimation::setUpActiveCamera);
+            // "Active" seems to be relative, it works better if we give it another second
+            // to become even more active.
+            QTimer::singleShot(1000, this, &StopMotionAnimation::setUpActiveCamera);
             break;
     }
 }
 
 void StopMotionAnimation::setUpActiveCamera()
 {
+    if (_cameraMonitor) {
+        delete _cameraMonitor;
+        _cameraMonitor = nullptr;
+    }
     _cameraMonitor = new CameraMonitor (this, _cameraInfo);
     connect (_cameraMonitor, &CameraMonitor::cameraLost, this, &StopMotionAnimation::cameraLost);
     connect (_cameraMonitor, &CameraMonitor::finished, _cameraMonitor, &QObject::deleteLater);
@@ -222,6 +228,7 @@ void StopMotionAnimation::setUpActiveCamera()
     setState (State::LIVE);
     _loadingMessage->hide();
     _movie->setCamera(_camera);
+    _graphicsView->fitInView(_videoItem);
 }
 
 void StopMotionAnimation::cameraLost ()
@@ -669,4 +676,5 @@ void StopMotionAnimation::on_rotate180Checkbox_stateChanged(int)
         _videoItem->setTransform(QTransform().rotate(0));
         _graphicsView->fitInView(_videoItem);
     }
+    ui->takePhotoButton->setFocus();
 }
