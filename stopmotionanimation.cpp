@@ -248,7 +248,7 @@ void StopMotionAnimation::cameraLost ()
 
 void StopMotionAnimation::frameSizeChanged(const QSizeF &size)
 {
-    _graphicsView->fitInView(QRectF(0,0,size.width(),size.height()));
+    _graphicsView->fitInView(QRectF(1,1,size.width(),size.height()));
 }
 
 void StopMotionAnimation::on_addToPreviousButton_clicked()
@@ -676,5 +676,11 @@ void StopMotionAnimation::on_rotate180Checkbox_stateChanged(int)
         _videoItem->setTransform(QTransform().rotate(0));
         _graphicsView->fitInView(_videoItem);
     }
+    QTransform m {_graphicsView->transform()};
+    if (m.isScaling()) {
+        // Unscale it:
+        m.scale (1.0/m.m11(), 1.0/m.m22());
+    }
+    _graphicsView->setTransform(m);
     ui->takePhotoButton->setFocus();
 }
