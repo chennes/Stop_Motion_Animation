@@ -6,6 +6,14 @@ CameraMonitor::CameraMonitor(QObject *parent, QCameraInfo camera) :
 {
 }
 
+
+CameraMonitor::~CameraMonitor()
+{
+    quit();
+    requestInterruption();
+    wait();
+}
+
 void CameraMonitor::run()
 {
     qDebug() << "Starting a new check thread";

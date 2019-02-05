@@ -11,6 +11,7 @@ class CameraMonitor : public QThread
 
 public:
     CameraMonitor(QObject *parent, QCameraInfo camera);
+    ~CameraMonitor() override;
     void run() Q_DECL_OVERRIDE;
 
 signals:
