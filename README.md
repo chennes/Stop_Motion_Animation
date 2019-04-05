@@ -15,3 +15,15 @@ You may download and distribute the software freely subject to the terms in the 
 in the download. Note that the software makes use of two other open-source libraries (Qt and FFmpeg) whose
 licensing is slightly more restrictive (LGPLv2 and LGPLv3, respectively). Source code for those libraries is
 available from their websites, or by writing to chennes@pioneerlibrarysystem.org. 
+
+## Building from Source ##
+If you'd like to compile the source code yourself, rather than using one of the [releases avaiable here](https://github.com/chennes/Stop_Motion_Animation/releases), you will need:
+* A C++ compiler with support for C++17 (development used Visual Studio 2017)
+* Qt version 5.12
+* QtCreator
+* FFmpeg shared libraries
+
+The code uses QtCreator's QMake-based build system. To build it:
+1. Open the project file (StopMotionAnimation.pro)
+1. Edit StopMotionAnimation.rc to update the paths for your FFmpeg libraries
+1. In the Build menu choose Build All
