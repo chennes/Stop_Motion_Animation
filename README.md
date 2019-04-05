@@ -17,7 +17,7 @@ licensing is slightly more restrictive (LGPLv2 and LGPLv3, respectively). Source
 available from their websites, or by writing to chennes@pioneerlibrarysystem.org. 
 
 ## Building from Source ##
-If you'd like to compile the source code yourself, rather than using one of the [releases avaiable here](https://github.com/chennes/Stop_Motion_Animation/releases), you will need:
+If you'd like to compile the source code yourself, rather than using one of the [releases available here](https://github.com/chennes/Stop_Motion_Animation/releases), you will need:
 * A C++ compiler with support for C++17 (development used Visual Studio 2017)
 * Qt version 5.12
 * QtCreator
